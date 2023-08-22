@@ -58,7 +58,7 @@ fn diff(x: &[f64]) -> Vec<f64> {
 }
 
 pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
-    // If we wants to permit unsorted x values, then one must include
+    // If we want to permit unsorted x values, then one must include
     // the following 3 lines. Most likely, this should be handled in a
     // separate place, as the possibility of duplicates are not dealt with.
     // let mut z: Vec<_> = x.into_iter().zip(y.into_iter()).collect();
