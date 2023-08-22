@@ -8,7 +8,7 @@ impl Gcm {
         match self.x.binary_search_by(|x_j| x_j.partial_cmp(&z).unwrap()) {
             Ok(j) => {
                 // An exact match on a binary search is inherently safe.
-                unsafe { self.x.get_unchecked(j).clone() }
+                unsafe { self.mu.get_unchecked(j).clone() }
             }
             Err(j) => {
                 // We must determine where to interpolate from.
