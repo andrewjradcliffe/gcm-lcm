@@ -16,6 +16,8 @@ impl Gcm {
                 if j == 0 {
                     self.mu[1]
                         + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (z - self.x[1])
+                    // self.mu[0]
+                    //     + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (z - self.x[0])
                 } else if j == k {
                     self.mu[k - 2]
                         + (self.mu[k - 1] - self.mu[k - 2]) / (self.x[k - 1] - self.x[k - 2])
@@ -25,6 +27,9 @@ impl Gcm {
                     self.mu[j - 1]
                         + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1])
                             * (z - self.x[j - 1])
+                    // self.mu[j]
+                    //     + (self.mu[j - 1] - self.mu[j]) / (self.x[j - 1] - self.x[j])
+                    //         * (z - self.x[j])
                 }
             }
         }
