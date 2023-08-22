@@ -1,3 +1,5 @@
+use std::iter::zip;
+
 #[derive(Debug)]
 pub struct Gcm {
     x: Vec<f64>,
@@ -82,9 +84,18 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
         if j == 0 {
             let mut nu_out = y;
             let mut pos: usize = 1;
-            for i in 0..nu.len() {
-                let mu = nu[i] / dx[i];
-                for _ in 0..w[i] {
+            // for i in 0..nu.len() {
+            //     let mu = nu[i] / dx[i];
+            //     for _ in 0..w[i] {
+            //         nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
+            //         pos += 1;
+            //     }
+            // }
+            // The maximum value of `pos` is 1 + ∑ⱼwⱼ = 1 + w.len() = n, but the
+            // last offset accessed is n - 1. Hence, all uses of `pos` are safe.
+            for (nu_i, (dx_i, w_i)) in zip(nu, zip(dx, w)) {
+                let mu = nu_i / dx_i;
+                for _ in 0..w_i {
                     nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
                     pos += 1;
                 }
