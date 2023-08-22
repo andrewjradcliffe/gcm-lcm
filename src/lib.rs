@@ -91,7 +91,7 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
             //         pos += 1;
             //     }
             // }
-            // The maximum value of `pos` is 1 + ∑ⱼwⱼ = 1 + w.len() = n, but the
+            // The maximum value of `pos` is 1 + ∑ⱼwⱼ = 1 + (n - 1) = n, but the
             // last offset accessed is n - 1. Hence, all uses of `pos` are safe.
             for (nu_i, (dx_i, w_i)) in zip(nu, zip(dx, w)) {
                 let mu = nu_i / dx_i;
