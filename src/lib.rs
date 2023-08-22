@@ -34,16 +34,6 @@ impl Gcm {
 fn diff(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let mut dx: Vec<f64> = Vec::with_capacity(n - 1);
-    // let mut iter = x.iter();
-    // if let Some(x_i_m1) = iter.next() {
-    //     let mut x_i = x_i_m1.clone();
-    //     iter.map(|x_i_m1| {
-    //         let delta = x_i - *x_i_m1;
-    //         x_i = x_i_m1.clone();
-    //         delta
-    //     })
-    //     .collect()
-    // }
 
     for i in 0..n - 1 {
         // We know this is in bounds given that the length is n, and
