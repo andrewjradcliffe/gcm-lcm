@@ -116,11 +116,34 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     }
 }
 
+pub struct Lcm {
+    g: Gcm,
+}
+impl Lcm {
+    pub fn interpolate(&self, z: f64) -> f64 {
+        self.g.interpolate(z)
+    }
+
+    pub fn x<'a>(&'a self) -> &'a Vec<f64> {
+        &self.g.x
+    }
+    pub fn mu<'a>(&'a self) -> &'a Vec<f64> {
+        &self.g.mu
+    }
+}
+pub fn lcm(x: Vec<f64>, y: Vec<f64>) -> Lcm {
+    let mut y = y;
+    y.iter_mut().for_each(|y_i| *y_i = -*y_i);
+    let mut g = gcm(x, y);
+    g.mu.iter_mut().for_each(|mu_i| *mu_i = -*mu_i);
+    Lcm { g }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn example_1() -> Gcm {
+    fn example_1() -> (Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
 
         let y: Vec<f64> = vec![
@@ -133,11 +156,11 @@ mod tests {
             4.460741607606607,
             2.787487520958698,
         ];
-        gcm(x, y)
+        (x, y)
     }
 
     #[test]
-    fn example_1_works() {
+    fn gcm_example_1_works() {
         let mu: Vec<f64> = vec![
             1.755940276352825,
             1.3378194316497374,
@@ -148,12 +171,14 @@ mod tests {
             2.531663740492411,
             2.787487520958698,
         ];
-        let g = example_1();
+        let (x, y) = example_1();
+        let g = gcm(x, y);
         assert_eq!(g.mu(), &mu);
     }
     #[test]
-    fn example_1_interpolation_works() {
-        let g = example_1();
+    fn gcm_example_1_interpolation_works() {
+        let (x, y) = example_1();
+        let g = gcm(x, y);
         let z: f64 = 5.0;
         assert_eq!(g.interpolate(z), 1.508368618627262);
 
@@ -177,5 +202,51 @@ mod tests {
 
         let z: f64 = 25.0;
         assert_eq!(g.interpolate(z), 3.21386048840251);
+    }
+
+    #[test]
+    fn lcm_example_1_works() {
+        let mu: Vec<f64> = vec![
+            1.755940276352825,
+            2.3175095781428867,
+            3.159863530827979,
+            4.283002134408102,
+            4.308393487722174,
+            4.359176194350319,
+            4.460741607606607,
+            2.787487520958698,
+        ];
+        let (x, y) = example_1();
+        let l = lcm(x, y);
+        assert_eq!(l.mu(), &mu);
+    }
+
+    #[test]
+    fn lcm_example_1_interpolation_works() {
+        let (x, y) = example_1();
+        let l = lcm(x, y);
+        let z: f64 = 5.0;
+        assert_eq!(l.interpolate(z), 2.879078879932948);
+
+        let mu: Vec<f64> = vec![
+            1.755940276352825,
+            2.3175095781428867,
+            3.159863530827979,
+            4.283002134408102,
+            4.308393487722174,
+            4.359176194350319,
+            4.460741607606607,
+            2.787487520958698,
+        ];
+        let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
+        for (x_i, mu_i) in x.into_iter().zip(mu.into_iter()) {
+            assert_eq!(l.interpolate(x_i), mu_i);
+        }
+
+        let z: f64 = -1.0;
+        assert_eq!(l.interpolate(z), 1.194370974562763);
+
+        let z: f64 = 25.0;
+        assert_eq!(l.interpolate(z), -0.0012692901211508456);
     }
 }
