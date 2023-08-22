@@ -52,33 +52,22 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
 
     let mut nu = diff(&y);
     let mut dx = diff(&x);
-    let k = dx.len();
+    let k = nu.len();
     let mut w: Vec<usize> = Vec::with_capacity(k);
     w.resize(n, 1);
     loop {
         let k = nu.len();
         let mut j = k - 1;
-        // while j > 0 {
-        //     if nu[j - 1] / dx[j - 1] > nu[j] / dx[j] {
-        //         break;
-        //     }
-        //     j -= 1;
-        // }
         while j > 0 && nu[j - 1] / dx[j - 1] <= nu[j] / dx[j] {
             j -= 1;
         }
         if j == 0 {
-            let mut nu_out: Vec<f64> = Vec::with_capacity(k);
-
-            // Safe due to satisfaction of necessary conditions
-            // nu_out.push(unsafe { y.get_unchecked(0).clone() });
-            nu_out.push(y[0]);
+            let mut nu_out = y;
             let mut pos: usize = 1;
-            let k = nu.len();
-            for i in 0..k {
+            for i in 0..nu.len() {
                 let mu = nu[i] / dx[i];
                 for _ in 0..w[i] {
-                    nu_out.push(nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]));
+                    nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
                     pos += 1;
                 }
             }
