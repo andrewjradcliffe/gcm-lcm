@@ -3,6 +3,34 @@ pub struct Gcm {
     pub x: Vec<f64>,
     pub mu: Vec<f64>,
 }
+impl Gcm {
+    pub fn interpolate(&self, z: f64) -> f64 {
+        match self.x.binary_search_by(|x_j| x_j.partial_cmp(&z).unwrap()) {
+            Ok(j) => {
+                // An exact match on a binary search is inherently safe.
+                unsafe { self.x.get_unchecked(j).clone() }
+            }
+            Err(j) => {
+                // We must determine where to interpolate from.
+                let k = self.x.len();
+                if j == 0 {
+                    self.mu[1]
+                        + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (z - self.x[1])
+                } else if j == k {
+                    self.mu[k - 1]
+                        + (self.mu[k] - self.mu[k - 1]) / (self.x[k] - self.x[k - 1])
+                            * (z - self.x[k - 1])
+                } else {
+                    // z < x[j] => z - x[j] < 0
+                    let delta = z - self.x[j - 1];
+                    self.mu[j - 1]
+                        + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1]) * delta
+                }
+            }
+        }
+    }
+}
+
 fn diff(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     let mut dx: Vec<f64> = Vec::with_capacity(n - 1);
