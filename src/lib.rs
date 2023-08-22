@@ -112,8 +112,7 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
 mod tests {
     use super::*;
 
-    #[test]
-    fn it_works() {
+    fn example_1() -> Gcm {
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
 
         let y: Vec<f64> = vec![
@@ -126,6 +125,29 @@ mod tests {
             4.460741607606607,
             2.787487520958698,
         ];
+        gcm(x, y)
+    }
+
+    #[test]
+    fn example_1_works() {
+        let mu: Vec<f64> = vec![
+            1.755940276352825,
+            1.3378194316497374,
+            1.5936432121160244,
+            1.934741586071074,
+            2.0200161795598364,
+            2.1905653665373612,
+            2.531663740492411,
+            2.787487520958698,
+        ];
+        let g = example_1();
+        assert_eq!(g.mu, mu);
+    }
+    #[test]
+    fn example_1_interpolation_works() {
+        let g = example_1();
+        let z: f64 = 5.0;
+        assert_eq!(g.interpolate(z), 1.508368618627262);
 
         let mu: Vec<f64> = vec![
             1.755940276352825,
@@ -137,7 +159,9 @@ mod tests {
             2.531663740492411,
             2.787487520958698,
         ];
-        let g = gcm(x, y);
-        assert_eq!(g.mu, mu);
+        let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
+        for (x_i, mu_i) in x.into_iter().zip(mu.into_iter()) {
+            assert_eq!(g.interpolate(x_i), mu_i);
+        }
     }
 }
