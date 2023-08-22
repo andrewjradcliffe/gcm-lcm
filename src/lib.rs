@@ -1,7 +1,7 @@
 #[derive(Debug)]
 pub struct Gcm {
-    pub x: Vec<f64>,
-    pub mu: Vec<f64>,
+    x: Vec<f64>,
+    mu: Vec<f64>,
 }
 impl Gcm {
     pub fn interpolate(&self, z: f64) -> f64 {
@@ -28,6 +28,12 @@ impl Gcm {
                 }
             }
         }
+    }
+    pub fn x<'a>(&'a self) -> &'a Vec<f64> {
+        &self.x
+    }
+    pub fn mu<'a>(&'a self) -> &'a Vec<f64> {
+        &self.mu
     }
 }
 
@@ -127,7 +133,7 @@ mod tests {
             2.787487520958698,
         ];
         let g = example_1();
-        assert_eq!(g.mu, mu);
+        assert_eq!(g.mu(), &mu);
     }
     #[test]
     fn example_1_interpolation_works() {
