@@ -17,14 +17,14 @@ impl Gcm {
                     self.mu[1]
                         + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (z - self.x[1])
                 } else if j == k {
-                    self.mu[k - 1]
-                        + (self.mu[k] - self.mu[k - 1]) / (self.x[k] - self.x[k - 1])
-                            * (z - self.x[k - 1])
+                    self.mu[k - 2]
+                        + (self.mu[k - 1] - self.mu[k - 2]) / (self.x[k - 1] - self.x[k - 2])
+                            * (z - self.x[k - 2])
                 } else {
                     // z < x[j] => z - x[j] < 0
-                    let delta = z - self.x[j - 1];
                     self.mu[j - 1]
-                        + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1]) * delta
+                        + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1])
+                            * (z - self.x[j - 1])
                 }
             }
         }
@@ -155,5 +155,11 @@ mod tests {
         for (x_i, mu_i) in x.into_iter().zip(mu.into_iter()) {
             assert_eq!(g.interpolate(x_i), mu_i);
         }
+
+        let z: f64 = -1.0;
+        assert_eq!(g.interpolate(z), 2.1740611210559124);
+
+        let z: f64 = 25.0;
+        assert_eq!(g.interpolate(z), 3.21386048840251);
     }
 }
