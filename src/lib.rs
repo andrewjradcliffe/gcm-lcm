@@ -61,7 +61,7 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     let mut dx = diff(&x);
     let k = nu.len();
     let mut w: Vec<usize> = Vec::with_capacity(k);
-    w.resize(n, 1);
+    w.resize(k, 1);
     loop {
         let k = nu.len();
         let mut j = k - 1;
