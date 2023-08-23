@@ -57,7 +57,7 @@ fn diff(x: &[f64]) -> Vec<f64> {
     dx
 }
 
-pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
+pub fn gcm_rtol(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     // If we want to permit unsorted x values, then one must include
     // the following 3 lines. Most likely, this should be handled in a
     // separate place, as the possibility of duplicates are not dealt with.
@@ -122,6 +122,58 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     }
 }
 
+pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
+    // These two necessary conditions could be handled more delicately.
+    let n = y.len();
+    assert_eq!(x.len(), n);
+    assert!(n > 1);
+
+    let v = diff(&y);
+    let dx = diff(&x);
+
+    let n = v.len();
+    let mut nu: Vec<f64> = Vec::with_capacity(n);
+    nu.push(v[0]);
+    let mut xi: Vec<f64> = Vec::with_capacity(n);
+    xi.push(dx[0]);
+    let mut w: Vec<usize> = Vec::with_capacity(n);
+    w.push(1);
+    let mut j: usize = 0;
+    let mut i: usize = 1;
+    while i < n {
+        j += 1;
+        nu.push(v[i]);
+        xi.push(dx[i]);
+        w.push(1);
+        i += 1;
+        while j > 0 && nu[j - 1] / xi[j - 1] > nu[j] / xi[j] {
+            let w_prime = w[j - 1] + w[j];
+            let nu_prime = (w[j - 1] as f64 * nu[j - 1] + w[j] as f64 * nu[j]) / w_prime as f64;
+            let xi_prime = (w[j - 1] as f64 * xi[j - 1] + w[j] as f64 * xi[j]) / w_prime as f64;
+            nu[j - 1] = nu_prime;
+            xi[j - 1] = xi_prime;
+            w[j - 1] = w_prime;
+            nu.swap_remove(j);
+            xi.swap_remove(j);
+            w.swap_remove(j);
+            j -= 1;
+        }
+    }
+    let m = j + 1;
+    j = 0;
+    let mut nu_out = y;
+    let mut pos: usize = 1;
+    while j < m {
+        let mu = nu[j] / xi[j];
+        for _ in 0..w[j] {
+            nu_out[pos] = nu_out[pos - 1] + mu * dx[pos - 1]; // (x[pos] - x[pos - 1]);
+            pos += 1;
+        }
+        j += 1;
+    }
+    Gcm { x, mu: nu_out }
+}
+
 #[derive(Debug)]
 pub struct Lcm {
     g: Gcm,
@@ -141,7 +193,7 @@ impl Lcm {
 pub fn lcm(x: Vec<f64>, y: Vec<f64>) -> Lcm {
     let mut y = y;
     y.iter_mut().for_each(|y_i| *y_i = -*y_i);
-    let mut g = gcm(x, y);
+    let mut g = gcm_ltor(x, y);
     g.mu.iter_mut().for_each(|mu_i| *mu_i = -*mu_i);
     Lcm { g }
 }
@@ -179,13 +231,13 @@ mod tests {
             2.787487520958698,
         ];
         let (x, y) = example_1();
-        let g = gcm(x, y);
+        let g = gcm_ltor(x, y);
         assert_eq!(g.mu(), &mu);
     }
     #[test]
     fn gcm_example_1_interpolation_works() {
         let (x, y) = example_1();
-        let g = gcm(x, y);
+        let g = gcm_ltor(x, y);
         let z: f64 = 5.0;
         assert_eq!(g.interpolate(z), 1.508368618627262);
 
