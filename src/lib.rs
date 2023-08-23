@@ -120,42 +120,6 @@ pub fn gcm(x: Vec<f64>, y: Vec<f64>) -> Gcm {
         // and we must move the index left.
         j = j.min(nu.len() - 1);
     }
-    // Alternative way to write it, which makes apparent the connection to
-    // Grotzinger and Witzgall. This may lead to some unnecessary violation
-    // checks, however. It can be reformed to use a loop + break as above
-    // in order to avoid these. On the other hand, the formulation above
-    // is approximately 10-30% faster.
-    // for _ in 0..n {
-    //     let k = nu.len();
-    //     let mut j = k - 1;
-    //     while j > 0 {
-    //         if nu[j - 1] / dx[j - 1] > nu[j] / dx[j] {
-    //             let w_prime = w[j - 1] + w[j];
-    //             let w_j_m1 = w[j - 1] as f64;
-    //             let w_j = w[j] as f64;
-    //             let nu_prime = (w_j_m1 * nu[j - 1] + w_j * nu[j]) / w_prime as f64;
-    //             let dx_prime = (w_j_m1 * dx[j - 1] + w_j * dx[j]) / w_prime as f64;
-    //             nu.remove(j);
-    //             w.remove(j);
-    //             dx.remove(j);
-    //             nu[j - 1] = nu_prime;
-    //             w[j - 1] = w_prime;
-    //             dx[j - 1] = dx_prime;
-    //             break;
-    //         }
-    //         j -= 1;
-    //     }
-    // }
-    // let mut nu_out = y;
-    // let mut pos: usize = 1;
-    // for (nu_i, (dx_i, w_i)) in zip(nu, zip(dx, w)) {
-    //     let mu = nu_i / dx_i;
-    //     for _ in 0..w_i {
-    //         nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
-    //         pos += 1;
-    //     }
-    // }
-    // return Gcm { x, mu: nu_out };
 }
 
 #[derive(Debug)]
