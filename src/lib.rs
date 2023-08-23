@@ -159,17 +159,25 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
             j -= 1;
         }
     }
-    let m = j + 1;
-    j = 0;
     let mut nu_out = y;
     let mut pos: usize = 1;
-    while j < m {
-        let mu = nu[j] / xi[j];
-        for _ in 0..w[j] {
-            nu_out[pos] = nu_out[pos - 1] + mu * dx[pos - 1]; // (x[pos] - x[pos - 1]);
+    // let m = j + 1;
+    // j = 0;
+    // while j < m {
+    //     let mu = nu[j] / xi[j];
+    //     for _ in 0..w[j] {
+    //         nu_out[pos] = nu_out[pos - 1] + mu * dx[pos - 1]; // (x[pos] - x[pos - 1]);
+    //         pos += 1;
+    //     }
+    //     j += 1;
+    // }
+    // Preferable to consume the memory
+    for (nu_j, (xi_j, w_j)) in zip(nu, zip(xi, w)) {
+        let mu = nu_j / xi_j;
+        for _ in 0..w_j {
+            nu_out[pos] = nu_out[pos - 1] + mu * dx[pos - 1];
             pos += 1;
         }
-        j += 1;
     }
     Gcm { x, mu: nu_out }
 }
