@@ -140,9 +140,12 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     let mut i: usize = 1;
     while i < n {
         j += 1;
+        // SAFETY: `i` is always less than `n`, hence, always a valid index.
         nu.push(v[i]);
         xi.push(dx[i]);
         w.push(1);
+        // SAFETY: `j` is always the index of the last block, and when `j = 0`,
+        // neither the second conditional nor loop body are executed.
         i += 1;
         while j > 0 && nu[j - 1] / xi[j - 1] > nu[j] / xi[j] {
             let w_prime = w[j - 1] + w[j];
