@@ -153,9 +153,9 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
             nu[j - 1] = nu_prime;
             xi[j - 1] = xi_prime;
             w[j - 1] = w_prime;
-            nu.swap_remove(j);
-            xi.swap_remove(j);
-            w.swap_remove(j);
+            nu.pop();
+            xi.pop();
+            w.pop();
             j -= 1;
         }
     }
