@@ -72,8 +72,7 @@ pub fn gcm_rtol(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     let mut nu = diff(&y);
     let mut dx = diff(&x);
     let k = nu.len();
-    let mut w: Vec<usize> = Vec::with_capacity(k);
-    w.resize(k, 1);
+    let mut w: Vec<usize> = vec![1; k];
     let mut j = k - 1;
     loop {
         // let k = nu.len();
