@@ -46,14 +46,13 @@ impl Gcm {
 
 fn diff(x: &[f64]) -> Vec<f64> {
     let n = x.len();
-    let mut dx: Vec<f64> = Vec::with_capacity(n - 1);
+    let m = n - 1;
+    let mut dx: Vec<f64> = vec![0.0; m];
 
-    for i in 0..n - 1 {
-        // We know this is in bounds given that the length is n, and
-        // (n - 2 + 1) = n - 1 is the last offset accessed.
-        let delta = unsafe { *x.get_unchecked(i + 1) - *x.get_unchecked(i) };
-        dx.push(delta);
-    }
+    x.windows(2)
+        .zip(dx.iter_mut())
+        .for_each(|(w, dx_i)| *dx_i = w[1] - w[0]);
+
     dx
 }
 
