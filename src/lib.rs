@@ -43,6 +43,19 @@ impl Gcm {
         &self.mu
     }
 }
+
+/// Construct the greatest convex minorant of the sequence of points
+/// *(xᵢ, f(xᵢ)), i = 0,...,n-1*, assuming that (1)
+/// (1) the values satisfy xᵢ < xᵢ₊₁ for i = 0,...,n-2,
+/// (2) -inf < xᵢ < inf ∀i, and
+/// (3) xᵢ is not NaN ∀i.
+/// The result of the algorithm is essentially meaningless if these
+/// three conditions are not satisfied. The implementation
+/// will not panic, and instead return a result which should be regarded
+/// as meaningless.
+/// In addition to the three conditions above, at `n` must be at least 2,
+/// and `x.len() == y.len()` must hold. Failure to satisfy these two
+/// conditions will result in a panic.
 pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
     gcm_ltor(x.to_vec(), y.to_vec())
 }
