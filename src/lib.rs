@@ -43,6 +43,9 @@ impl Gcm {
         &self.mu
     }
 }
+pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
+    gcm_ltor(x.to_vec(), y.to_vec())
+}
 
 fn diff(x: &[f64]) -> Vec<f64> {
     let n = x.len();
@@ -215,9 +218,9 @@ impl Lcm {
         &self.g.mu
     }
 }
-pub fn lcm(x: Vec<f64>, y: Vec<f64>) -> Lcm {
-    let mut y = y;
-    y.iter_mut().for_each(|y_i| *y_i = -*y_i);
+pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
+    let x = x.to_vec();
+    let y: Vec<f64> = y.iter().map(|y_i| -*y_i).collect();
     let mut g = gcm_ltor(x, y);
     g.mu.iter_mut().for_each(|mu_i| *mu_i = -*mu_i);
     Lcm { g }
@@ -315,14 +318,14 @@ mod tests {
     #[test]
     fn lcm_example_1_works() {
         let (x, y, _, mu) = example_1();
-        let l = lcm(x, y);
+        let l = lcm(&x, &y);
         assert_eq!(l.mu(), &mu);
     }
 
     #[test]
     fn lcm_example_1_interpolation_works() {
         let (x, y, _, mu) = example_1();
-        let l = lcm(x, y);
+        let l = lcm(&x, &y);
         let z: f64 = 5.0;
         assert_eq!(l.interpolate(z), 2.879078879932948);
 
@@ -348,7 +351,7 @@ mod tests {
     #[test]
     fn lcm_example_2_works() {
         let (x, y, _, mu) = example_2();
-        let l = lcm(x, y);
+        let l = lcm(&x, &y);
         assert_eq!(l.mu(), &mu);
     }
 }
