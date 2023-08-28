@@ -6,8 +6,9 @@ pub struct Gcm {
     mu: Vec<f64>,
 }
 impl Gcm {
-    pub fn interpolate(&self, z: f64) -> f64 {
-        match self.x.binary_search_by(|x_j| x_j.partial_cmp(&z).unwrap()) {
+    pub fn interpolate(&self, x: f64) -> f64 {
+        // match self.x.binary_search_by(|x_j| x_j.partial_cmp(&x).unwrap())
+        match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
             Ok(j) => {
                 // An exact match on a binary search is inherently safe.
                 unsafe { self.mu.get_unchecked(j).clone() }
@@ -17,21 +18,21 @@ impl Gcm {
                 let k = self.x.len();
                 if j == 0 {
                     self.mu[1]
-                        + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (z - self.x[1])
+                        + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (x - self.x[1])
                     // self.mu[0]
-                    //     + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (z - self.x[0])
+                    //     + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (x - self.x[0])
                 } else if j == k {
                     self.mu[k - 2]
                         + (self.mu[k - 1] - self.mu[k - 2]) / (self.x[k - 1] - self.x[k - 2])
-                            * (z - self.x[k - 2])
+                            * (x - self.x[k - 2])
                 } else {
-                    // z < x[j] => z - x[j] < 0
+                    // x < x[j] => x - x[j] < 0
                     self.mu[j - 1]
                         + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1])
-                            * (z - self.x[j - 1])
+                            * (x - self.x[j - 1])
                     // self.mu[j]
                     //     + (self.mu[j - 1] - self.mu[j]) / (self.x[j - 1] - self.x[j])
-                    //         * (z - self.x[j])
+                    //         * (x - self.x[j])
                 }
             }
         }
@@ -201,8 +202,8 @@ pub struct Lcm {
     g: Gcm,
 }
 impl Lcm {
-    pub fn interpolate(&self, z: f64) -> f64 {
-        self.g.interpolate(z)
+    pub fn interpolate(&self, x: f64) -> f64 {
+        self.g.interpolate(x)
     }
 
     pub fn x<'a>(&'a self) -> &'a Vec<f64> {
