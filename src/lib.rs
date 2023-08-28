@@ -323,13 +323,28 @@ mod tests {
         x.iter_mut().for_each(|x_i| *x_i *= 1.5);
         (x, y, mu_gcm, mu_lcm)
     }
-
-    #[test]
-    fn gcm_example_1_works() {
-        let (x, y, mu, _) = example_1();
-        let g = gcm_ltor(x, y);
-        assert_eq!(g.mu(), &mu);
+    fn example_9() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0];
+        let y: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -8.0, -12.0];
+        let mu_gcm: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -10.75, -12.0];
+        let mu_lcm: Vec<f64> = vec![1.0, -0.5, -2.0, -3.5, -8.0, -12.0];
+        (x, y, mu_gcm, mu_lcm)
     }
+    fn example_10() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0];
+        let y: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -8.0, 5.0];
+        let mu_gcm: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -8.0, 5.0];
+        let mu_lcm: Vec<f64> = vec![
+            1.0,
+            1.5714285714285716, // 1.5714285714285714
+            2.1428571428571432, // 2.142857142857143
+            2.714285714285715,  // 2.7142857142857144
+            4.428571428571429,
+            5.0,
+        ];
+        (x, y, mu_gcm, mu_lcm)
+    }
+
     #[test]
     fn gcm_example_1_interpolation_works() {
         let (x, y, mu, _) = example_1();
@@ -347,13 +362,6 @@ mod tests {
 
         let z: f64 = 25.0;
         assert_eq!(g.interpolate(z), 3.21386048840251);
-    }
-
-    #[test]
-    fn lcm_example_1_works() {
-        let (x, y, _, mu) = example_1();
-        let l = lcm(&x, &y);
-        assert_eq!(l.mu(), &mu);
     }
 
     #[test]
@@ -390,6 +398,7 @@ mod tests {
         }
     }
 
+    gcmlcm_example! { gcmlcm_example_1_works example_1 }
     gcmlcm_example! { gcmlcm_example_2_works example_2 }
     gcmlcm_example! { gcmlcm_example_3_works example_3 }
     gcmlcm_example! { gcmlcm_example_4_works example_4 }
@@ -397,6 +406,8 @@ mod tests {
     gcmlcm_example! { gcmlcm_example_6_works example_6 }
     gcmlcm_example! { gcmlcm_example_7_works example_7 }
     gcmlcm_example! { gcmlcm_example_8_works example_8 }
+    gcmlcm_example! { gcmlcm_example_9_works example_9 }
+    gcmlcm_example! { gcmlcm_example_10_works example_10 }
 
     #[test]
     fn gcm_inf_behavior() {
