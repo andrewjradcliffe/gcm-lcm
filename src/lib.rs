@@ -308,6 +308,21 @@ mod tests {
         let mu_lcm: Vec<f64> = vec![1.0, 3.0, 4.0, 5.0, 6.0, 5.0];
         (x, y, mu_gcm, mu_lcm)
     }
+    fn example_6() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let (mut x, y, mu_gcm, mu_lcm) = example_5();
+        x.iter_mut().for_each(|x_i| *x_i *= 0.5);
+        (x, y, mu_gcm, mu_lcm)
+    }
+    fn example_7() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let (mut x, y, mu_gcm, mu_lcm) = example_5();
+        x.iter_mut().for_each(|x_i| *x_i *= 0.25);
+        (x, y, mu_gcm, mu_lcm)
+    }
+    fn example_8() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let (mut x, y, mu_gcm, mu_lcm) = example_7();
+        x.iter_mut().for_each(|x_i| *x_i *= 1.5);
+        (x, y, mu_gcm, mu_lcm)
+    }
 
     #[test]
     fn gcm_example_1_works() {
@@ -379,6 +394,9 @@ mod tests {
     gcmlcm_example! { gcmlcm_example_3_works example_3 }
     gcmlcm_example! { gcmlcm_example_4_works example_4 }
     gcmlcm_example! { gcmlcm_example_5_works example_5 }
+    gcmlcm_example! { gcmlcm_example_6_works example_6 }
+    gcmlcm_example! { gcmlcm_example_7_works example_7 }
+    gcmlcm_example! { gcmlcm_example_8_works example_8 }
 
     #[test]
     fn gcm_inf_behavior() {
