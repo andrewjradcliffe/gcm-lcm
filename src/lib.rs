@@ -46,14 +46,18 @@ impl Gcm {
 
 fn diff(x: &[f64]) -> Vec<f64> {
     let n = x.len();
-    let m = n - 1;
-    let mut dx: Vec<f64> = vec![0.0; m];
+    if n > 1 {
+        let m = n - 1;
+        let mut dx: Vec<f64> = vec![0.0; m];
 
-    x.windows(2)
-        .zip(dx.iter_mut())
-        .for_each(|(w, dx_i)| *dx_i = w[1] - w[0]);
+        x.windows(2)
+            .zip(dx.iter_mut())
+            .for_each(|(w, dx_i)| *dx_i = w[1] - w[0]);
 
-    dx
+        dx
+    } else {
+        vec![]
+    }
 }
 
 pub fn gcm_rtol(x: Vec<f64>, y: Vec<f64>) -> Gcm {
@@ -223,6 +227,21 @@ pub fn lcm(x: Vec<f64>, y: Vec<f64>) -> Lcm {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn diff_works() {
+        let x: Vec<f64> = vec![4.0, 2.5, 3.5, 3.0];
+        assert_eq!(diff(&x), vec![-1.5, 1.0, -0.5]);
+
+        let x: Vec<f64> = vec![1.0, 3.0];
+        assert_eq!(diff(&x), vec![2.0]);
+
+        let x: Vec<f64> = vec![1.0];
+        assert_eq!(diff(&x), vec![]);
+
+        let x: Vec<f64> = vec![];
+        assert_eq!(diff(&x), vec![]);
+    }
 
     fn example_1() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
