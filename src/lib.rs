@@ -301,6 +301,14 @@ mod tests {
         (x, y, mu_gcm, mu_lcm)
     }
 
+    fn example_5() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0];
+        let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0];
+        let mu_gcm: Vec<f64> = vec![1.0, 1.5, 2.0, 13.0 / 5.0, 22.0 / 5.0, 5.0];
+        let mu_lcm: Vec<f64> = vec![1.0, 3.0, 4.0, 5.0, 6.0, 5.0];
+        (x, y, mu_gcm, mu_lcm)
+    }
+
     #[test]
     fn gcm_example_1_works() {
         let (x, y, mu, _) = example_1();
@@ -370,34 +378,7 @@ mod tests {
     gcmlcm_example! { gcmlcm_example_2_works example_2 }
     gcmlcm_example! { gcmlcm_example_3_works example_3 }
     gcmlcm_example! { gcmlcm_example_4_works example_4 }
-
-    #[test]
-    fn gcm_example_2_works() {
-        let (x, y, mu, _) = example_2();
-        let g = gcm_ltor(x, y);
-        assert_eq!(g.mu(), &mu);
-    }
-
-    #[test]
-    fn lcm_example_2_works() {
-        let (x, y, _, mu) = example_2();
-        let l = lcm(&x, &y);
-        assert_eq!(l.mu(), &mu);
-    }
-
-    #[test]
-    fn gcm_example_3_works() {
-        let (x, y, mu, _) = example_3();
-        let g = gcm_ltor(x, y);
-        assert_eq!(g.mu(), &mu);
-    }
-
-    #[test]
-    fn lcm_example_3_works() {
-        let (x, y, _, mu) = example_3();
-        let l = lcm(&x, &y);
-        assert_eq!(l.mu(), &mu);
-    }
+    gcmlcm_example! { gcmlcm_example_5_works example_5 }
 
     #[test]
     fn gcm_inf_behavior() {
