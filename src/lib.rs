@@ -166,40 +166,21 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
             j -= 1;
         }
     }
-    let mut mu = y;
-    // let mut pos: usize = 1;
-    // let m = j + 1;
-    // j = 0;
-    // while j < m {
-    //     let mu_j = nu[j] / xi[j];
-    //     for _ in 0..w[j] {
-    //         mu[pos] = mu[pos - 1] + mu_j * dx[pos - 1]; // (x[pos] - x[pos - 1]);
-    //         pos += 1;
-    //     }
-    //     j += 1;
-    // }
-    // Preferable to consume the memory
-    // for (nu_j, (xi_j, w_j)) in zip(nu, zip(xi, w)) {
-    //     let mu_j = nu_j / xi_j;
-    //     for _ in 0..w_j {
-    //         mu[pos] = mu[pos - 1] + mu_j * dx[pos - 1];
-    //         pos += 1;
-    //     }
-    // }
-    let mut nu_prev = mu[0];
+    let mut f = y;
+    let mut f_prev = f[0];
     let mut pos: usize = 1;
     for (nu_j, (xi_j, w_j)) in zip(nu, zip(xi, w)) {
-        let mu_j = nu_j / xi_j;
-        for (mu_pos, dx_pos) in mu[pos..pos + w_j]
+        let dfdx_j = nu_j / xi_j;
+        for (f_pos, dx_pos) in f[pos..pos + w_j]
             .iter_mut()
             .zip(dx[pos - 1..pos - 1 + w_j].iter())
         {
-            *mu_pos = nu_prev + mu_j * *dx_pos;
-            nu_prev = mu_pos.clone();
+            *f_pos = f_prev + dfdx_j * *dx_pos;
+            f_prev = f_pos.clone();
         }
         pos += w_j;
     }
-    Gcm { x, mu }
+    Gcm { x, mu: f }
 }
 
 #[derive(Debug)]
