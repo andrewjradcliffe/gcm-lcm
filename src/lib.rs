@@ -285,6 +285,22 @@ mod tests {
         (x, y, mu_gcm, mu_lcm)
     }
 
+    fn example_3() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let x: Vec<f64> = vec![1.0, 2.0];
+        let y: Vec<f64> = vec![1.0, 4.0];
+        let mu_gcm: Vec<f64> = vec![1.0, 4.0];
+        let mu_lcm: Vec<f64> = vec![1.0, 4.0];
+        (x, y, mu_gcm, mu_lcm)
+    }
+
+    fn example_4() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![1.0, 4.0, 9.0];
+        let mu_gcm: Vec<f64> = vec![1.0, 4.0, 9.0];
+        let mu_lcm: Vec<f64> = vec![1.0, 5.0, 9.0];
+        (x, y, mu_gcm, mu_lcm)
+    }
+
     #[test]
     fn gcm_example_1_works() {
         let (x, y, mu, _) = example_1();
@@ -336,6 +352,25 @@ mod tests {
         assert_eq!(l.interpolate(z), -0.0012692901211508456);
     }
 
+    macro_rules! gcmlcm_example {
+        { $test:ident $example:ident } => {
+            #[test]
+            fn $test() {
+                let (x, y, mu, _) = $example();
+                let g = gcm_ltor(x, y);
+                assert_eq!(g.mu(), &mu);
+
+                let (x, y, _, mu) = $example();
+                let l = lcm(&x, &y);
+                assert_eq!(l.mu(), &mu);
+            }
+        }
+    }
+
+    gcmlcm_example! { gcmlcm_example_2_works example_2 }
+    gcmlcm_example! { gcmlcm_example_3_works example_3 }
+    gcmlcm_example! { gcmlcm_example_4_works example_4 }
+
     #[test]
     fn gcm_example_2_works() {
         let (x, y, mu, _) = example_2();
@@ -348,5 +383,66 @@ mod tests {
         let (x, y, _, mu) = example_2();
         let l = lcm(&x, &y);
         assert_eq!(l.mu(), &mu);
+    }
+
+    #[test]
+    fn gcm_example_3_works() {
+        let (x, y, mu, _) = example_3();
+        let g = gcm_ltor(x, y);
+        assert_eq!(g.mu(), &mu);
+    }
+
+    #[test]
+    fn lcm_example_3_works() {
+        let (x, y, _, mu) = example_3();
+        let l = lcm(&x, &y);
+        assert_eq!(l.mu(), &mu);
+    }
+
+    #[test]
+    fn gcm_inf_behavior() {
+        let inf = f64::INFINITY;
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![1.0, 4.0, inf];
+        let g = gcm(&x, &y);
+        assert_eq!(g.mu(), &vec![1.0, 4.0, inf]);
+        assert_eq!(g.interpolate(3.0), inf);
+        assert_eq!(g.interpolate(4.0), inf);
+
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![1.0, 4.0, -inf];
+        let g = gcm(&x, &y);
+        assert_eq!(g.mu(), &vec![1.0, -inf, -inf]);
+        assert_eq!(g.interpolate(3.0), -inf);
+        assert!(g.interpolate(2.5).is_nan());
+
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![1.0, inf, 9.0];
+        let g = gcm(&x, &y);
+
+        let lhs = g.mu();
+        assert_eq!(lhs[0], 1.0);
+        assert!(lhs[1].is_nan());
+        assert!(lhs[2].is_nan())
+    }
+
+    #[test]
+    fn gcm_nan_behavior() {
+        let x: Vec<f64> = vec![1.0, f64::NAN, 3.0];
+        let y: Vec<f64> = vec![1.0, 4.0, 9.0];
+        let g = gcm(&x, &y);
+        assert!(g.mu().iter().any(|mu_i| mu_i.is_nan()));
+
+        assert_eq!(g.interpolate(1.0), 1.0);
+        assert!(g.interpolate(2.0).is_nan());
+        assert!(g.interpolate(3.0).is_nan());
+
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![1.0, f64::NAN, 9.0];
+        let g = gcm(&x, &y);
+        assert!(g.mu().iter().any(|mu_i| mu_i.is_nan()));
+        assert_eq!(g.interpolate(1.0), 1.0);
+        assert!(g.interpolate(2.0).is_nan());
+        assert!(g.interpolate(3.0).is_nan());
     }
 }
