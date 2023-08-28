@@ -47,8 +47,7 @@ impl Gcm {
 fn diff(x: &[f64]) -> Vec<f64> {
     let n = x.len();
     if n > 1 {
-        let m = n - 1;
-        let mut dx: Vec<f64> = vec![0.0; m];
+        let mut dx: Vec<f64> = vec![0.0; n - 1];
 
         x.windows(2)
             .zip(dx.iter_mut())
