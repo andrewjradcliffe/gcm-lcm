@@ -455,4 +455,107 @@ mod tests {
         assert!(g.interpolate(2.0).is_nan());
         assert!(g.interpolate(3.0).is_nan());
     }
+
+    fn is_primal_feasible(x: &[f64]) -> bool {
+        x.windows(2).all(|w| w[0] <= w[1])
+    }
+    fn is_primal_feasible_approx(x: &[f64]) -> bool {
+        x.windows(2).all(|w| (w[0] - w[1]) <= 10.0 * f64::EPSILON)
+    }
+
+    fn verify_kkt_conditions(x: Vec<f64>, y: Vec<f64>) {
+        let df = diff(&y);
+        let dx = diff(&x);
+        let dfdx: Vec<f64> = df.iter().zip(dx.iter()).map(|(df, dx)| *df / *dx).collect();
+
+        let g = gcm(&x, &y);
+        // This recovers the derivative terms; it would be preferable to use
+        // the implicit function points from within the solver.
+        // Unfortunately, we get all the error of finite difference, which
+        // we could have avoided if we had the solver internals.
+        // Bloated solver vs. slightly less tight verification?
+        // If we ever choose the former, then we can tighten the latter.
+        let fbar: Vec<f64> = x.iter().map(|x| g.interpolate(*x)).collect();
+
+        let dfbar = diff(&fbar);
+        let dfbardx: Vec<f64> = dfbar
+            .iter()
+            .zip(dx.iter())
+            .map(|(df, dx)| *df / *dx)
+            .collect();
+        // Primal feasibility
+        // assert!(is_primal_feasible(&dfbardx));
+        assert!(is_primal_feasible(&dfbardx) || is_primal_feasible_approx(&dfbardx));
+
+        // Dual feasibility
+        // This is awkward without access to the `w` from the solver.
+        // We must recover the blocks, but, unfortunately, finite precision
+        // means that we cannot rely on exact equality (which, if one inspects
+        // the `gcm_ltor` code, would clearly be the case).
+        let eps = 10.0 * f64::EPSILON;
+        let n = dfbardx.len();
+        let mut i: usize = 0;
+        while i < n {
+            let a = dfbardx[i];
+            let mut b = dfdx[i] * dx[i];
+            let mut c = dfbardx[i] * dx[i];
+            i += 1;
+            assert_eq!((0.0_f64).min(b - c), 0.0);
+            while i < n && (dfbardx[i] - a).abs() < eps {
+                // N.B. The condition is the `assert!`, but the `assert_eq!` is
+                // equivalent and gives a more informative error message.
+                // assert!(b - c >= 0.0);
+                assert_eq!((0.0_f64).min(b - c), 0.0);
+                b += dfdx[i] * dx[i];
+                c += dfbardx[i] * dx[i];
+                i += 1;
+            }
+        }
+
+        // Complementary slackness
+        let mut lambda: Vec<f64> = vec![0.0; n];
+        i = 1;
+        // lambda[-1] is zero, but, for convenience of not reindexing, we omit it.
+        lambda[0] = (dfdx[0] - dfbardx[0]) * dx[0];
+        while i < n {
+            lambda[i] = lambda[i - 1] + (dfdx[i] - dfbardx[i]) * dx[i];
+            i += 1;
+        }
+        i = 0;
+        // This absolute tolerance is too large in most cases, but example_7 requires it.
+        let eps = 20.0 * f64::EPSILON;
+        while i < n - 1 {
+            // This is the condition, but we must accommodate finite precision.
+            // assert_eq!(lambda[i] * (dfbardx[i] - dfbardx[i + 1]), 0.0);
+            assert!(lambda[i] * (dfbardx[i] - dfbardx[i + 1]) < eps);
+            i += 1;
+        }
+    }
+
+    #[test]
+    fn verify_kkt_example() {
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 9.0];
+        let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
+        verify_kkt_conditions(x, y);
+    }
+
+    macro_rules! verify_kkt {
+        { $test:ident $example:ident } => {
+            #[test]
+            fn $test() {
+                let (x, y, _, _) = $example();
+                verify_kkt_conditions(x, y);
+            }
+        }
+    }
+    verify_kkt! { kkt_example_1 example_1 }
+    verify_kkt! { kkt_example_2 example_2 }
+    verify_kkt! { kkt_example_3 example_3 }
+    verify_kkt! { kkt_example_4 example_4 }
+    verify_kkt! { kkt_example_5 example_5 }
+    verify_kkt! { kkt_example_6 example_6 }
+    verify_kkt! { kkt_example_7 example_7 }
+    verify_kkt! { kkt_example_8 example_8 }
+    verify_kkt! { kkt_example_9 example_9 }
+    verify_kkt! { kkt_example_10 example_10 }
 }
