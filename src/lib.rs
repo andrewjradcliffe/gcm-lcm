@@ -169,8 +169,10 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
         i += 1;
         while j > 0 && nu[j - 1] / xi[j - 1] > nu[j] / xi[j] {
             let w_prime = w[j - 1] + w[j];
-            let nu_prime = (w[j - 1] as f64 * nu[j - 1] + w[j] as f64 * nu[j]) / w_prime as f64;
-            let xi_prime = (w[j - 1] as f64 * xi[j - 1] + w[j] as f64 * xi[j]) / w_prime as f64;
+            // let nu_prime = (w[j - 1] as f64 * nu[j - 1] + w[j] as f64 * nu[j]) / w_prime as f64;
+            // let xi_prime = (w[j - 1] as f64 * xi[j - 1] + w[j] as f64 * xi[j]) / w_prime as f64;
+            let nu_prime = nu[j - 1] + nu[j];
+            let xi_prime = xi[j - 1] + xi[j];
             nu[j - 1] = nu_prime;
             xi[j - 1] = xi_prime;
             w[j - 1] = w_prime;
