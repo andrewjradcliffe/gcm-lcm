@@ -93,18 +93,7 @@ pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
 }
 
 fn diff(x: &[f64]) -> Vec<f64> {
-    let n = x.len();
-    if n > 1 {
-        let mut dx: Vec<f64> = vec![0.0; n - 1];
-
-        x.windows(2)
-            .zip(dx.iter_mut())
-            .for_each(|(w, dx_i)| *dx_i = w[1] - w[0]);
-
-        dx
-    } else {
-        vec![]
-    }
+    x.windows(2).map(|w| w[1] - w[0]).collect()
 }
 
 // pub fn gcm_rtol(x: Vec<f64>, y: Vec<f64>) -> Gcm {
