@@ -533,6 +533,17 @@ mod tests {
         let g = gcm(&x, &y);
         let dfdx_2: Vec<f64> = x[0..x.len() - 1].iter().map(|&x| g.derivative(x)).collect();
         assert_eq!(g.dfdx(), &dfdx_2);
+
+        // Is it clamped?
+        assert_eq!(g.derivative(5.0), g.derivative(4.9758));
+        assert_eq!(g.derivative(1.0), g.derivative(1.8155));
+
+        let l = lcm(&x, &y);
+        let dfdx_2: Vec<f64> = x[0..x.len() - 1].iter().map(|&x| l.derivative(x)).collect();
+        assert_eq!(l.dfdx(), &dfdx_2);
+
+        assert_eq!(l.derivative(5.0), l.derivative(4.9758));
+        assert_eq!(l.derivative(1.0), l.derivative(1.8155));
     }
 
     fn is_primal_feasible(x: &[f64]) -> bool {
