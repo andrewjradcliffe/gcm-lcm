@@ -12,28 +12,55 @@ impl Gcm {
         match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
             Ok(j) => {
                 // An exact match on a binary search is inherently safe.
-                unsafe { self.mu.get_unchecked(j).clone() }
+                // unsafe { self.mu.get_unchecked(j).clone() }
+                self.mu[j]
             }
             Err(j) => {
                 // We must determine where to interpolate from.
                 let k = self.x.len();
                 if j == 0 {
-                    self.mu[1]
-                        + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (x - self.x[1])
+                    // self.mu[1]
+                    //     + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (x - self.x[1])
                     // self.mu[0]
                     //     + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (x - self.x[0])
+                    self.mu[0] + self.dfdx[0] * (x - self.x[0])
                 } else if j == k {
-                    self.mu[k - 2]
-                        + (self.mu[k - 1] - self.mu[k - 2]) / (self.x[k - 1] - self.x[k - 2])
-                            * (x - self.x[k - 2])
+                    // self.mu[k - 2]
+                    //     + (self.mu[k - 1] - self.mu[k - 2]) / (self.x[k - 1] - self.x[k - 2])
+                    //         * (x - self.x[k - 2])
+                    self.mu[k - 2] + self.dfdx[k - 2] * (x - self.x[k - 2])
                 } else {
                     // x < x[j] => x - x[j] < 0
-                    self.mu[j - 1]
-                        + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1])
-                            * (x - self.x[j - 1])
+                    // self.mu[j - 1]
+                    //     + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1])
+                    //         * (x - self.x[j - 1])
                     // self.mu[j]
                     //     + (self.mu[j - 1] - self.mu[j]) / (self.x[j - 1] - self.x[j])
                     //         * (x - self.x[j])
+                    self.mu[j - 1] + self.dfdx[j - 1] * (x - self.x[j - 1])
+                }
+            }
+        }
+    }
+    pub fn derivative(&self, x: f64) -> f64 {
+        let k = self.x.len();
+        match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
+            Ok(j) => {
+                if j == k - 1 {
+                    self.dfdx[k - 2]
+                } else {
+                    self.dfdx[j]
+                }
+            }
+            Err(j) => {
+                if j == 0 {
+                    self.dfdx[0]
+                } else if j == k {
+                    self.dfdx[k - 2]
+                } else {
+                    self.dfdx[j - 1]
+                        + (self.dfdx[j] - self.dfdx[j - 1]) / (self.x[j] - self.x[j - 1])
+                            * (x - self.x[j - 1])
                 }
             }
         }
@@ -227,6 +254,7 @@ pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
     let y: Vec<f64> = y.iter().map(|y_i| -*y_i).collect();
     let mut g = gcm_ltor(x, y);
     g.mu.iter_mut().for_each(|mu_i| *mu_i = -*mu_i);
+    g.dfdx.iter_mut().for_each(|dfdx_i| *dfdx_i = -*dfdx_i);
     Lcm { g }
 }
 
@@ -359,7 +387,7 @@ mod tests {
         let (x, y, mu, _) = example_1();
         let g = gcm_ltor(x, y);
         let z: f64 = 5.0;
-        assert_eq!(g.interpolate(z), 1.508368618627262);
+        assert_eq!(g.interpolate(z), 1.5083686186272622);
 
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
         for (x_i, mu_i) in x.into_iter().zip(mu.into_iter()) {
@@ -378,7 +406,7 @@ mod tests {
         let (x, y, _, mu) = example_1();
         let l = lcm(&x, &y);
         let z: f64 = 5.0;
-        assert_eq!(l.interpolate(z), 2.879078879932948);
+        assert_eq!(l.interpolate(z), 2.8790788799329485);
 
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
         for (x_i, mu_i) in x.into_iter().zip(mu.into_iter()) {
@@ -386,7 +414,7 @@ mod tests {
         }
 
         let z: f64 = -1.0;
-        assert_eq!(l.interpolate(z), 1.194370974562763);
+        assert_eq!(l.interpolate(z), 1.1943709745627633);
 
         let z: f64 = 25.0;
         assert_eq!(l.interpolate(z), -0.0012692901211508456);
@@ -433,7 +461,7 @@ mod tests {
         let g = gcm(&x, &y);
         assert_eq!(g.mu(), &vec![1.0, -inf, -inf]);
         assert_eq!(g.interpolate(3.0), -inf);
-        assert!(g.interpolate(2.5).is_nan());
+        assert!(!g.interpolate(2.5).is_nan());
 
         let x: Vec<f64> = vec![1.0, 2.0, 3.0];
         let y: Vec<f64> = vec![1.0, inf, 9.0];
@@ -463,6 +491,19 @@ mod tests {
         assert_eq!(g.interpolate(1.0), 1.0);
         assert!(g.interpolate(2.0).is_nan());
         assert!(g.interpolate(3.0).is_nan());
+    }
+
+    #[test]
+    fn derivative_works() {
+        let x: Vec<f64> = vec![
+            1.8155, 2.4122, 2.4455, 2.9653, 3.1504, 3.8246, 3.8406, 4.2418, 4.2586, 4.9758,
+        ];
+        let y: Vec<f64> = vec![
+            0.0989, 0.1678, 0.1710, 0.1993, 0.1972, 1.3035, 1.2431, 0.8232, 0.7623, 0.0283,
+        ];
+        let g = gcm(&x, &y);
+        let dfdx_2: Vec<f64> = x[0..x.len() - 1].iter().map(|&x| g.derivative(x)).collect();
+        assert_eq!(g.dfdx(), &dfdx_2);
     }
 
     fn is_primal_feasible(x: &[f64]) -> bool {
