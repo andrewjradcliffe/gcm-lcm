@@ -1,12 +1,14 @@
 use std::iter::zip;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Gcm {
     x: Vec<f64>,
     mu: Vec<f64>,
     dfdx: Vec<f64>,
 }
 impl Gcm {
+    /// Return the value of the greatest convex minorant at `x`. If `x` is outside
+    /// the domain of the inputs to `gcm`, then this is extrapolation.
     pub fn interpolate(&self, x: f64) -> f64 {
         // match self.x.binary_search_by(|x_j| x_j.partial_cmp(&x).unwrap())
         match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
@@ -42,6 +44,10 @@ impl Gcm {
             }
         }
     }
+
+    /// Return the value of the derivative of the greatest convex minorant at `x`.
+    /// If `x` is outside the domain defined by the inputs to `gcm`, then this
+    /// is clamped to the appropriate end of the codomain of the derivative.
     pub fn derivative(&self, x: f64) -> f64 {
         let k = self.x.len();
         match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
@@ -65,27 +71,32 @@ impl Gcm {
             }
         }
     }
+
+    /// Return the domain.
     pub fn x<'a>(&'a self) -> &'a Vec<f64> {
         &self.x
     }
+
+    /// Return the codomain (computed by the algorithm).
     pub fn mu<'a>(&'a self) -> &'a Vec<f64> {
         &self.mu
     }
+
+    /// Return the codomain of the derivative.
     pub fn dfdx<'a>(&'a self) -> &'a Vec<f64> {
         &self.dfdx
     }
 }
 
 /// Construct the greatest convex minorant of the sequence of points
-/// *(xᵢ, f(xᵢ)), i = 0,...,n-1*, assuming that (1)
-/// (1) the values satisfy xᵢ < xᵢ₊₁ for i = 0,...,n-2,
-/// (2) -inf < xᵢ < inf ∀i, and
-/// (3) xᵢ is not NaN ∀i.
+/// *(xᵢ, f(xᵢ)), i = 0,...,n-1*, assuming that
+/// (1) the values satisfy *xᵢ < xᵢ₊₁* for *i = 0,...,n-2*,
+/// (2) *-∞ < xᵢ < ∞ ∀i*, and
+/// (3) *xᵢ* is not NaN *∀i*.
 /// The result of the algorithm is essentially meaningless if these
-/// three conditions are not satisfied. The implementation
-/// will not panic, and instead return a result which should be regarded
-/// as meaningless.
-/// In addition to the three conditions above, at `n` must be at least 2,
+/// three conditions are not satisfied; however, the implementation
+/// will not panic.
+/// In addition to the three conditions above, `n` must be at least 2,
 /// and `x.len() == y.len()` must hold. Failure to satisfy these two
 /// conditions will result in a panic.
 pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
@@ -222,22 +233,51 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     Gcm { x, mu: f, dfdx }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Lcm {
     g: Gcm,
 }
 impl Lcm {
+    /// Return the value of the greatest convex minorant at `x`. If `x` is outside
+    /// the domain of the inputs to `lcm`, then this is extrapolation.
     pub fn interpolate(&self, x: f64) -> f64 {
         self.g.interpolate(x)
     }
 
+    /// Return the value of the derivative of the greatest convex minorant at `x`.
+    /// If `x` is outside the domain defined by the inputs to `gcm`, then this
+    /// is clamped to the appropriate end of the codomain of the derivative.
+    pub fn derivative(&self, x: f64) -> f64 {
+        self.g.derivative(x)
+    }
+
+    /// Return the domain.
     pub fn x<'a>(&'a self) -> &'a Vec<f64> {
         &self.g.x
     }
+
+    /// Return the codomain (computed by the algorithm).
     pub fn mu<'a>(&'a self) -> &'a Vec<f64> {
         &self.g.mu
     }
+
+    /// Return the codomain of the derivative.
+    pub fn dfdx<'a>(&'a self) -> &'a Vec<f64> {
+        &self.g.dfdx
+    }
 }
+
+/// Construct the least concave majorant of the sequence of points
+/// *(xᵢ, f(xᵢ)), i = 0,...,n-1*, assuming that
+/// (1) the values satisfy *xᵢ < xᵢ₊₁* for *i = 0,...,n-2*,
+/// (2) *-∞ < xᵢ < ∞ ∀i*, and
+/// (3) *xᵢ* is not NaN *∀i*.
+/// The result of the algorithm is essentially meaningless if these
+/// three conditions are not satisfied; however, the implementation
+/// will not panic.
+/// In addition to the three conditions above, `n` must be at least 2,
+/// and `x.len() == y.len()` must hold. Failure to satisfy these two
+/// conditions will result in a panic.
 pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
     let x = x.to_vec();
     let y: Vec<f64> = y.iter().map(|y_i| -*y_i).collect();
