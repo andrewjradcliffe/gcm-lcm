@@ -3,7 +3,7 @@ use std::iter::zip;
 #[derive(Debug, Clone)]
 pub struct Gcm {
     x: Vec<f64>,
-    mu: Vec<f64>,
+    f: Vec<f64>,
     dfdx: Vec<f64>,
 }
 impl Gcm {
@@ -14,32 +14,32 @@ impl Gcm {
         match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
             Ok(j) => {
                 // An exact match on a binary search is inherently safe.
-                // unsafe { self.mu.get_unchecked(j).clone() }
-                self.mu[j]
+                // unsafe { self.f.get_unchecked(j).clone() }
+                self.f[j]
             }
             Err(j) => {
                 // We must determine where to interpolate from.
                 let k = self.x.len();
                 if j == 0 {
-                    // self.mu[1]
-                    //     + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (x - self.x[1])
-                    // self.mu[0]
-                    //     + (self.mu[0] - self.mu[1]) / (self.x[0] - self.x[1]) * (x - self.x[0])
-                    self.mu[0] + self.dfdx[0] * (x - self.x[0])
+                    // self.f[1]
+                    //     + (self.f[0] - self.f[1]) / (self.x[0] - self.x[1]) * (x - self.x[1])
+                    // self.f[0]
+                    //     + (self.f[0] - self.f[1]) / (self.x[0] - self.x[1]) * (x - self.x[0])
+                    self.f[0] + self.dfdx[0] * (x - self.x[0])
                 } else if j == k {
-                    // self.mu[k - 2]
-                    //     + (self.mu[k - 1] - self.mu[k - 2]) / (self.x[k - 1] - self.x[k - 2])
+                    // self.f[k - 2]
+                    //     + (self.f[k - 1] - self.f[k - 2]) / (self.x[k - 1] - self.x[k - 2])
                     //         * (x - self.x[k - 2])
-                    self.mu[k - 2] + self.dfdx[k - 2] * (x - self.x[k - 2])
+                    self.f[k - 2] + self.dfdx[k - 2] * (x - self.x[k - 2])
                 } else {
                     // x < x[j] => x - x[j] < 0
-                    // self.mu[j - 1]
-                    //     + (self.mu[j] - self.mu[j - 1]) / (self.x[j] - self.x[j - 1])
+                    // self.f[j - 1]
+                    //     + (self.f[j] - self.f[j - 1]) / (self.x[j] - self.x[j - 1])
                     //         * (x - self.x[j - 1])
-                    // self.mu[j]
-                    //     + (self.mu[j - 1] - self.mu[j]) / (self.x[j - 1] - self.x[j])
+                    // self.f[j]
+                    //     + (self.f[j - 1] - self.f[j]) / (self.x[j - 1] - self.x[j])
                     //         * (x - self.x[j])
-                    self.mu[j - 1] + self.dfdx[j - 1] * (x - self.x[j - 1])
+                    self.f[j - 1] + self.dfdx[j - 1] * (x - self.x[j - 1])
                 }
             }
         }
@@ -78,8 +78,8 @@ impl Gcm {
     }
 
     /// Return the codomain (computed by the algorithm).
-    pub fn mu<'a>(&'a self) -> &'a Vec<f64> {
-        &self.mu
+    pub fn f<'a>(&'a self) -> &'a Vec<f64> {
+        &self.f
     }
 
     /// Return the codomain of the derivative.
@@ -89,7 +89,7 @@ impl Gcm {
 }
 
 /// Construct the greatest convex minorant of the sequence of points
-/// *(xᵢ, f(xᵢ)), i = 0,...,n-1*, assuming that
+/// *(xᵢ, yᵢ), i = 0,...,n-1*, assuming that
 /// (1) the values satisfy *xᵢ < xᵢ₊₁* for *i = 0,...,n-2*,
 /// (2) *-∞ < xᵢ < ∞ ∀i*, and
 /// (3) *xᵢ* is not NaN *∀i*.
@@ -230,7 +230,7 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
         }
         pos += w_j;
     }
-    Gcm { x, mu: f, dfdx }
+    Gcm { x, f, dfdx }
 }
 
 #[derive(Debug, Clone)]
@@ -257,8 +257,8 @@ impl Lcm {
     }
 
     /// Return the codomain (computed by the algorithm).
-    pub fn mu<'a>(&'a self) -> &'a Vec<f64> {
-        &self.g.mu
+    pub fn f<'a>(&'a self) -> &'a Vec<f64> {
+        &self.g.f
     }
 
     /// Return the codomain of the derivative.
@@ -268,7 +268,7 @@ impl Lcm {
 }
 
 /// Construct the least concave majorant of the sequence of points
-/// *(xᵢ, f(xᵢ)), i = 0,...,n-1*, assuming that
+/// *(xᵢ, yᵢ), i = 0,...,n-1*, assuming that
 /// (1) the values satisfy *xᵢ < xᵢ₊₁* for *i = 0,...,n-2*,
 /// (2) *-∞ < xᵢ < ∞ ∀i*, and
 /// (3) *xᵢ* is not NaN *∀i*.
@@ -282,7 +282,7 @@ pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
     let x = x.to_vec();
     let y: Vec<f64> = y.iter().map(|y_i| -*y_i).collect();
     let mut g = gcm_ltor(x, y);
-    g.mu.iter_mut().for_each(|mu_i| *mu_i = -*mu_i);
+    g.f.iter_mut().for_each(|f_i| *f_i = -*f_i);
     g.dfdx.iter_mut().for_each(|dfdx_i| *dfdx_i = -*dfdx_i);
     Lcm { g }
 }
@@ -320,7 +320,7 @@ mod tests {
             2.787487520958698,
         ];
 
-        let mu_gcm: Vec<f64> = vec![
+        let f_gcm: Vec<f64> = vec![
             1.755940276352825,
             1.3378194316497374,
             1.5936432121160244,
@@ -330,7 +330,7 @@ mod tests {
             2.531663740492411,
             2.787487520958698,
         ];
-        let mu_lcm: Vec<f64> = vec![
+        let f_lcm: Vec<f64> = vec![
             1.755940276352825,
             2.3175095781428867,
             3.159863530827979,
@@ -340,67 +340,67 @@ mod tests {
             4.460741607606607,
             2.787487520958698,
         ];
-        (x, y, mu_gcm, mu_lcm)
+        (x, y, f_gcm, f_lcm)
     }
 
     fn example_2() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0];
         let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0];
-        let mu_gcm: Vec<f64> = vec![1.0, 1.5, 2.0, 3.0, 6.0];
-        let mu_lcm: Vec<f64> = vec![1.0, 3.0, 4.0, 5.0, 6.0];
-        (x, y, mu_gcm, mu_lcm)
+        let f_gcm: Vec<f64> = vec![1.0, 1.5, 2.0, 3.0, 6.0];
+        let f_lcm: Vec<f64> = vec![1.0, 3.0, 4.0, 5.0, 6.0];
+        (x, y, f_gcm, f_lcm)
     }
 
     fn example_3() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 2.0];
         let y: Vec<f64> = vec![1.0, 4.0];
-        let mu_gcm: Vec<f64> = vec![1.0, 4.0];
-        let mu_lcm: Vec<f64> = vec![1.0, 4.0];
-        (x, y, mu_gcm, mu_lcm)
+        let f_gcm: Vec<f64> = vec![1.0, 4.0];
+        let f_lcm: Vec<f64> = vec![1.0, 4.0];
+        (x, y, f_gcm, f_lcm)
     }
 
     fn example_4() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0];
         let y: Vec<f64> = vec![1.0, 4.0, 9.0];
-        let mu_gcm: Vec<f64> = vec![1.0, 4.0, 9.0];
-        let mu_lcm: Vec<f64> = vec![1.0, 5.0, 9.0];
-        (x, y, mu_gcm, mu_lcm)
+        let f_gcm: Vec<f64> = vec![1.0, 4.0, 9.0];
+        let f_lcm: Vec<f64> = vec![1.0, 5.0, 9.0];
+        (x, y, f_gcm, f_lcm)
     }
 
     fn example_5() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0];
         let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0];
-        let mu_gcm: Vec<f64> = vec![1.0, 1.5, 2.0, 13.0 / 5.0, 22.0 / 5.0, 5.0];
-        let mu_lcm: Vec<f64> = vec![1.0, 3.0, 4.0, 5.0, 6.0, 5.0];
-        (x, y, mu_gcm, mu_lcm)
+        let f_gcm: Vec<f64> = vec![1.0, 1.5, 2.0, 13.0 / 5.0, 22.0 / 5.0, 5.0];
+        let f_lcm: Vec<f64> = vec![1.0, 3.0, 4.0, 5.0, 6.0, 5.0];
+        (x, y, f_gcm, f_lcm)
     }
     fn example_6() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
-        let (mut x, y, mu_gcm, mu_lcm) = example_5();
+        let (mut x, y, f_gcm, f_lcm) = example_5();
         x.iter_mut().for_each(|x_i| *x_i *= 0.5);
-        (x, y, mu_gcm, mu_lcm)
+        (x, y, f_gcm, f_lcm)
     }
     fn example_7() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
-        let (mut x, y, mu_gcm, mu_lcm) = example_5();
+        let (mut x, y, f_gcm, f_lcm) = example_5();
         x.iter_mut().for_each(|x_i| *x_i *= 0.25);
-        (x, y, mu_gcm, mu_lcm)
+        (x, y, f_gcm, f_lcm)
     }
     fn example_8() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
-        let (mut x, y, mu_gcm, mu_lcm) = example_7();
+        let (mut x, y, f_gcm, f_lcm) = example_7();
         x.iter_mut().for_each(|x_i| *x_i *= 1.5);
-        (x, y, mu_gcm, mu_lcm)
+        (x, y, f_gcm, f_lcm)
     }
     fn example_9() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0];
         let y: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -8.0, -12.0];
-        let mu_gcm: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -10.75, -12.0];
-        let mu_lcm: Vec<f64> = vec![1.0, -0.5, -2.0, -3.5, -8.0, -12.0];
-        (x, y, mu_gcm, mu_lcm)
+        let f_gcm: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -10.75, -12.0];
+        let f_lcm: Vec<f64> = vec![1.0, -0.5, -2.0, -3.5, -8.0, -12.0];
+        (x, y, f_gcm, f_lcm)
     }
     fn example_10() -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0];
         let y: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -8.0, 5.0];
-        let mu_gcm: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -8.0, 5.0];
-        let mu_lcm: Vec<f64> = vec![
+        let f_gcm: Vec<f64> = vec![1.0, -3.0, -5.0, -7.0, -8.0, 5.0];
+        let f_lcm: Vec<f64> = vec![
             1.0,
             1.5714285714285714, // 1.5714285714285716
             2.142857142857143,  // 2.1428571428571432
@@ -408,19 +408,19 @@ mod tests {
             4.428571428571429,
             5.0,
         ];
-        (x, y, mu_gcm, mu_lcm)
+        (x, y, f_gcm, f_lcm)
     }
 
     #[test]
     fn gcm_example_1_interpolation_works() {
-        let (x, y, mu, _) = example_1();
+        let (x, y, f, _) = example_1();
         let g = gcm_ltor(x, y);
         let z: f64 = 5.0;
         assert_eq!(g.interpolate(z), 1.5083686186272622);
 
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
-        for (x_i, mu_i) in x.into_iter().zip(mu.into_iter()) {
-            assert_eq!(g.interpolate(x_i), mu_i);
+        for (x_i, f_i) in x.into_iter().zip(f.into_iter()) {
+            assert_eq!(g.interpolate(x_i), f_i);
         }
 
         let z: f64 = -1.0;
@@ -432,14 +432,14 @@ mod tests {
 
     #[test]
     fn lcm_example_1_interpolation_works() {
-        let (x, y, _, mu) = example_1();
+        let (x, y, _, f) = example_1();
         let l = lcm(&x, &y);
         let z: f64 = 5.0;
         assert_eq!(l.interpolate(z), 2.8790788799329485);
 
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
-        for (x_i, mu_i) in x.into_iter().zip(mu.into_iter()) {
-            assert_eq!(l.interpolate(x_i), mu_i);
+        for (x_i, f_i) in x.into_iter().zip(f.into_iter()) {
+            assert_eq!(l.interpolate(x_i), f_i);
         }
 
         let z: f64 = -1.0;
@@ -453,13 +453,13 @@ mod tests {
         { $test:ident $example:ident } => {
             #[test]
             fn $test() {
-                let (x, y, mu, _) = $example();
+                let (x, y, f, _) = $example();
                 let g = gcm_ltor(x, y);
-                assert_eq!(g.mu(), &mu);
+                assert_eq!(g.f(), &f);
 
-                let (x, y, _, mu) = $example();
+                let (x, y, _, f) = $example();
                 let l = lcm(&x, &y);
-                assert_eq!(l.mu(), &mu);
+                assert_eq!(l.f(), &f);
             }
         }
     }
@@ -481,14 +481,14 @@ mod tests {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0];
         let y: Vec<f64> = vec![1.0, 4.0, inf];
         let g = gcm(&x, &y);
-        assert_eq!(g.mu(), &vec![1.0, 4.0, inf]);
+        assert_eq!(g.f(), &vec![1.0, 4.0, inf]);
         assert_eq!(g.interpolate(3.0), inf);
         assert_eq!(g.interpolate(4.0), inf);
 
         let x: Vec<f64> = vec![1.0, 2.0, 3.0];
         let y: Vec<f64> = vec![1.0, 4.0, -inf];
         let g = gcm(&x, &y);
-        assert_eq!(g.mu(), &vec![1.0, -inf, -inf]);
+        assert_eq!(g.f(), &vec![1.0, -inf, -inf]);
         assert_eq!(g.interpolate(3.0), -inf);
         assert!(!g.interpolate(2.5).is_nan());
 
@@ -496,7 +496,7 @@ mod tests {
         let y: Vec<f64> = vec![1.0, inf, 9.0];
         let g = gcm(&x, &y);
 
-        let lhs = g.mu();
+        let lhs = g.f();
         assert_eq!(lhs[0], 1.0);
         assert!(lhs[1].is_nan());
         assert!(lhs[2].is_nan())
@@ -507,7 +507,7 @@ mod tests {
         let x: Vec<f64> = vec![1.0, f64::NAN, 3.0];
         let y: Vec<f64> = vec![1.0, 4.0, 9.0];
         let g = gcm(&x, &y);
-        assert!(g.mu().iter().any(|mu_i| mu_i.is_nan()));
+        assert!(g.f().iter().any(|f_i| f_i.is_nan()));
 
         assert_eq!(g.interpolate(1.0), 1.0);
         assert!(g.interpolate(2.0).is_nan());
@@ -516,7 +516,7 @@ mod tests {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0];
         let y: Vec<f64> = vec![1.0, f64::NAN, 9.0];
         let g = gcm(&x, &y);
-        assert!(g.mu().iter().any(|mu_i| mu_i.is_nan()));
+        assert!(g.f().iter().any(|f_i| f_i.is_nan()));
         assert_eq!(g.interpolate(1.0), 1.0);
         assert!(g.interpolate(2.0).is_nan());
         assert!(g.interpolate(3.0).is_nan());
