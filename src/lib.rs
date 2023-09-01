@@ -40,6 +40,7 @@ impl Gcm {
         match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
             Ok(j) => {
                 if j == k - 1 {
+                    // At right boundary, we do not know the derivative, hence, clamp.
                     self.dfdx[k - 2]
                 } else {
                     self.dfdx[j]
@@ -48,7 +49,8 @@ impl Gcm {
             Err(j) => {
                 if j == 0 {
                     self.dfdx[0]
-                } else if j == k {
+                } else if j >= k - 1 {
+                    // At the right boundary, hence, clamp.
                     self.dfdx[k - 2]
                 } else {
                     self.dfdx[j - 1]
@@ -460,6 +462,7 @@ mod tests {
         // Is it clamped?
         assert_eq!(g.derivative(5.0), g.derivative(4.9758));
         assert_eq!(g.derivative(1.0), g.derivative(1.8155));
+        assert_eq!(g.derivative(4.96), g.derivative(4.9758));
 
         let l = lcm(&x, &y);
         let dfdx_2: Vec<f64> = x[0..x.len() - 1].iter().map(|&x| l.derivative(x)).collect();
@@ -467,6 +470,7 @@ mod tests {
 
         assert_eq!(l.derivative(5.0), l.derivative(4.9758));
         assert_eq!(l.derivative(1.0), l.derivative(1.8155));
+        assert_eq!(g.derivative(4.96), g.derivative(4.9758));
     }
 
     fn is_primal_feasible(x: &[f64]) -> bool {
