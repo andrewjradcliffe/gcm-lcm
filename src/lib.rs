@@ -96,7 +96,7 @@ fn diff(x: &[f64]) -> Vec<f64> {
     x.windows(2).map(|w| w[1] - w[0]).collect()
 }
 
-pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
+fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     // These two necessary conditions could be handled more delicately.
     let n = y.len();
     assert_eq!(x.len(), n);
