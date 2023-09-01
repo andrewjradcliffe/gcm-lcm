@@ -4,6 +4,7 @@ use std::iter::zip;
 pub struct Gcm {
     x: Vec<f64>,
     mu: Vec<f64>,
+    dfdx: Vec<f64>,
 }
 impl Gcm {
     pub fn interpolate(&self, x: f64) -> f64 {
@@ -43,6 +44,9 @@ impl Gcm {
     pub fn mu<'a>(&'a self) -> &'a Vec<f64> {
         &self.mu
     }
+    pub fn dfdx<'a>(&'a self) -> &'a Vec<f64> {
+        &self.dfdx
+    }
 }
 
 /// Construct the greatest convex minorant of the sequence of points
@@ -76,69 +80,69 @@ fn diff(x: &[f64]) -> Vec<f64> {
     }
 }
 
-pub fn gcm_rtol(x: Vec<f64>, y: Vec<f64>) -> Gcm {
-    // If we want to permit unsorted x values, then one must include
-    // the following 3 lines. Most likely, this should be handled in a
-    // separate place, as the possibility of duplicates are not dealt with.
-    // let mut z: Vec<_> = x.into_iter().zip(y.into_iter()).collect();
-    // z.sort_unstable_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
-    // let (x, y): (Vec<_>, Vec<_>) = z.into_iter().unzip();
+// pub fn gcm_rtol(x: Vec<f64>, y: Vec<f64>) -> Gcm {
+//     // If we want to permit unsorted x values, then one must include
+//     // the following 3 lines. Most likely, this should be handled in a
+//     // separate place, as the possibility of duplicates are not dealt with.
+//     // let mut z: Vec<_> = x.into_iter().zip(y.into_iter()).collect();
+//     // z.sort_unstable_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
+//     // let (x, y): (Vec<_>, Vec<_>) = z.into_iter().unzip();
 
-    // These two necessary conditions could be handled more delicately.
-    let n = y.len();
-    assert_eq!(x.len(), n);
-    assert!(n > 1);
+//     // These two necessary conditions could be handled more delicately.
+//     let n = y.len();
+//     assert_eq!(x.len(), n);
+//     assert!(n > 1);
 
-    let mut nu = diff(&y);
-    let mut dx = diff(&x);
-    let k = nu.len();
-    let mut w: Vec<usize> = vec![1; k];
-    let mut j = k - 1;
-    loop {
-        // let k = nu.len();
-        // let mut j = k - 1;
-        while j > 0 && nu[j - 1] / dx[j - 1] <= nu[j] / dx[j] {
-            j -= 1;
-        }
-        if j == 0 {
-            let mut nu_out = y;
-            let mut pos: usize = 1;
-            // for i in 0..nu.len() {
-            //     let mu = nu[i] / dx[i];
-            //     for _ in 0..w[i] {
-            //         nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
-            //         pos += 1;
-            //     }
-            // }
-            // The maximum value of `pos` is 1 + ∑ⱼwⱼ = 1 + (n - 1) = n, but the
-            // last offset accessed is n - 1. Hence, all uses of `pos` are safe.
-            for (nu_i, (dx_i, w_i)) in zip(nu, zip(dx, w)) {
-                let mu = nu_i / dx_i;
-                for _ in 0..w_i {
-                    nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
-                    pos += 1;
-                }
-            }
-            return Gcm { x, mu: nu_out };
-        }
-        let w_prime = w[j - 1] + w[j];
-        let w_j_m1 = w[j - 1] as f64;
-        let w_j = w[j] as f64;
-        let nu_prime = (w_j_m1 * nu[j - 1] + w_j * nu[j]) / w_prime as f64;
-        let dx_prime = (w_j_m1 * dx[j - 1] + w_j * dx[j]) / w_prime as f64;
-        nu.remove(j);
-        w.remove(j);
-        dx.remove(j);
-        nu[j - 1] = nu_prime;
-        w[j - 1] = w_prime;
-        dx[j - 1] = dx_prime;
-        // Adjacent violators were pooled, thus check the newly formed block
-        // against the (new) preceding block. However, if we pooled the
-        // penultimate and last blocks, then no (new) preceding block exists,
-        // and we must move the index left.
-        j = j.min(nu.len() - 1);
-    }
-}
+//     let mut nu = diff(&y);
+//     let mut dx = diff(&x);
+//     let k = nu.len();
+//     let mut w: Vec<usize> = vec![1; k];
+//     let mut j = k - 1;
+//     loop {
+//         // let k = nu.len();
+//         // let mut j = k - 1;
+//         while j > 0 && nu[j - 1] / dx[j - 1] <= nu[j] / dx[j] {
+//             j -= 1;
+//         }
+//         if j == 0 {
+//             let mut nu_out = y;
+//             let mut pos: usize = 1;
+//             // for i in 0..nu.len() {
+//             //     let mu = nu[i] / dx[i];
+//             //     for _ in 0..w[i] {
+//             //         nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
+//             //         pos += 1;
+//             //     }
+//             // }
+//             // The maximum value of `pos` is 1 + ∑ⱼwⱼ = 1 + (n - 1) = n, but the
+//             // last offset accessed is n - 1. Hence, all uses of `pos` are safe.
+//             for (nu_i, (dx_i, w_i)) in zip(nu, zip(dx, w)) {
+//                 let mu = nu_i / dx_i;
+//                 for _ in 0..w_i {
+//                     nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
+//                     pos += 1;
+//                 }
+//             }
+//             return Gcm { x, mu: nu_out };
+//         }
+//         let w_prime = w[j - 1] + w[j];
+//         let w_j_m1 = w[j - 1] as f64;
+//         let w_j = w[j] as f64;
+//         let nu_prime = (w_j_m1 * nu[j - 1] + w_j * nu[j]) / w_prime as f64;
+//         let dx_prime = (w_j_m1 * dx[j - 1] + w_j * dx[j]) / w_prime as f64;
+//         nu.remove(j);
+//         w.remove(j);
+//         dx.remove(j);
+//         nu[j - 1] = nu_prime;
+//         w[j - 1] = w_prime;
+//         dx[j - 1] = dx_prime;
+//         // Adjacent violators were pooled, thus check the newly formed block
+//         // against the (new) preceding block. However, if we pooled the
+//         // penultimate and last blocks, then no (new) preceding block exists,
+//         // and we must move the index left.
+//         j = j.min(nu.len() - 1);
+//     }
+// }
 
 pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     // These two necessary conditions could be handled more delicately.
@@ -183,20 +187,23 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
         }
     }
     let mut f = y;
+    let mut dfdx = v;
     let mut f_prev = f[0];
     let mut pos: usize = 1;
     for (nu_j, (xi_j, w_j)) in zip(nu, zip(xi, w)) {
         let dfdx_j = nu_j / xi_j;
-        for (f_pos, dx_pos) in f[pos..pos + w_j]
-            .iter_mut()
-            .zip(dx[pos - 1..pos - 1 + w_j].iter())
-        {
+        for (f_pos, (dx_pos, dfdx_pos)) in f[pos..pos + w_j].iter_mut().zip(
+            dx[pos - 1..pos - 1 + w_j]
+                .iter()
+                .zip(dfdx[pos - 1..pos - 1 + w_j].iter_mut()),
+        ) {
+            *dfdx_pos = dfdx_j;
             *f_pos = f_prev + dfdx_j * *dx_pos;
             f_prev = f_pos.clone();
         }
         pos += w_j;
     }
-    Gcm { x, mu: f }
+    Gcm { x, mu: f, dfdx }
 }
 
 #[derive(Debug)]
@@ -477,14 +484,15 @@ mod tests {
         // we could have avoided if we had the solver internals.
         // Bloated solver vs. slightly less tight verification?
         // If we ever choose the former, then we can tighten the latter.
-        let fbar: Vec<f64> = x.iter().map(|x| g.interpolate(*x)).collect();
+        // let fbar: Vec<f64> = x.iter().map(|x| g.interpolate(*x)).collect();
 
-        let dfbar = diff(&fbar);
-        let dfbardx: Vec<f64> = dfbar
-            .iter()
-            .zip(dx.iter())
-            .map(|(df, dx)| *df / *dx)
-            .collect();
+        // let dfbar = diff(&fbar);
+        // let dfbardx: Vec<f64> = dfbar
+        //     .iter()
+        //     .zip(dx.iter())
+        //     .map(|(df, dx)| *df / *dx)
+        //     .collect();
+        let dfbardx: Vec<f64> = g.dfdx().clone();
         // Primal feasibility
         // assert!(is_primal_feasible(&dfbardx));
         assert!(is_primal_feasible(&dfbardx) || is_primal_feasible_approx(&dfbardx));
@@ -494,7 +502,7 @@ mod tests {
         // We must recover the blocks, but, unfortunately, finite precision
         // means that we cannot rely on exact equality (which, if one inspects
         // the `gcm_ltor` code, would clearly be the case).
-        let eps = 10.0 * f64::EPSILON;
+        let eps = f64::EPSILON;
         let n = dfbardx.len();
         let mut i: usize = 0;
         while i < n {
@@ -525,7 +533,7 @@ mod tests {
         }
         i = 0;
         // This absolute tolerance is too large in most cases, but example_7 requires it.
-        let eps = 20.0 * f64::EPSILON;
+        let eps = 3.0 * f64::EPSILON;
         while i < n - 1 {
             // This is the condition, but we must accommodate finite precision.
             // assert_eq!(lambda[i] * (dfbardx[i] - dfbardx[i + 1]), 0.0);
