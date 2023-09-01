@@ -546,6 +546,28 @@ mod tests {
         let y: Vec<f64> = vec![-2.45, 10.86, 3.91, 8.14, 9.29, 17.19, 13.3, 24.1];
         verify_kkt_conditions(x, y);
     }
+    #[test]
+    fn verify_kkt_3() {
+        let x: Vec<f64> = vec![0.42, 4.49, 4.71, 10.02, 12.41, 14.88, 16.98, 19.16];
+        let y: Vec<f64> = vec![-2.45, 10.86, 3.91, 8.14, 9.29, 17.19, 13.3, 24.1];
+        verify_kkt_conditions(x, y);
+    }
+    #[test]
+    fn verify_kkt_4() {
+        let x: Vec<f64> = vec![
+            1.8155, 2.4122, 2.4455, 2.9653, 3.1504, 3.8246, 3.8406, 4.2418, 4.2586, 4.9758,
+        ];
+        let y: Vec<f64> = vec![
+            0.0989, 0.1678, 0.1710, 0.1993, 0.1972, 1.3035, 1.2431, 0.8232, 0.7623, 0.0283,
+        ];
+        verify_kkt_conditions(x, y);
+    }
+    #[test]
+    fn verify_kkt_5() {
+        let x: Vec<f64> = vec![0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17];
+        let y: Vec<f64> = vec![1.0, 10.0, -1.0, -10.0, 10.0, -10.0, 0.0, 0.0];
+        verify_kkt_conditions(x, y);
+    }
 
     macro_rules! verify_kkt {
         { $test:ident $example:ident } => {
