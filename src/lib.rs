@@ -10,35 +10,22 @@ impl Gcm {
     /// Return the value of the greatest convex minorant at `x`. If `x` is outside
     /// the domain of the inputs to `gcm`, then this is extrapolation.
     pub fn interpolate(&self, x: f64) -> f64 {
-        // match self.x.binary_search_by(|x_j| x_j.partial_cmp(&x).unwrap())
         match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
-            Ok(j) => {
-                // An exact match on a binary search is inherently safe.
-                // unsafe { self.f.get_unchecked(j).clone() }
-                self.f[j]
-            }
+            Ok(j) => self.f[j],
             Err(j) => {
-                // We must determine where to interpolate from.
                 let k = self.x.len();
                 if j == 0 {
-                    // self.f[1]
-                    //     + (self.f[0] - self.f[1]) / (self.x[0] - self.x[1]) * (x - self.x[1])
-                    // self.f[0]
-                    //     + (self.f[0] - self.f[1]) / (self.x[0] - self.x[1]) * (x - self.x[0])
+                    // Below left boundary, extrapolate using derivative at boundary.
                     self.f[0] + self.dfdx[0] * (x - self.x[0])
                 } else if j == k {
-                    // self.f[k - 2]
-                    //     + (self.f[k - 1] - self.f[k - 2]) / (self.x[k - 1] - self.x[k - 2])
-                    //         * (x - self.x[k - 2])
+                    // Above right boundary, extrapolate using derivative at
+                    // preceding point; we do not know the derivative at the boundary.
                     self.f[k - 2] + self.dfdx[k - 2] * (x - self.x[k - 2])
                 } else {
-                    // x < x[j] => x - x[j] < 0
-                    // self.f[j - 1]
-                    //     + (self.f[j] - self.f[j - 1]) / (self.x[j] - self.x[j - 1])
-                    //         * (x - self.x[j - 1])
-                    // self.f[j]
-                    //     + (self.f[j - 1] - self.f[j]) / (self.x[j - 1] - self.x[j])
-                    //         * (x - self.x[j])
+                    // x[j - 1] < x < x[j]
+                    // At or below right boundary, this is just the recurrence
+                    // relation iterated to an intermediate point, hence,
+                    // it is fully rigorous.
                     self.f[j - 1] + self.dfdx[j - 1] * (x - self.x[j - 1])
                 }
             }
@@ -107,70 +94,6 @@ fn diff(x: &[f64]) -> Vec<f64> {
     x.windows(2).map(|w| w[1] - w[0]).collect()
 }
 
-// pub fn gcm_rtol(x: Vec<f64>, y: Vec<f64>) -> Gcm {
-//     // If we want to permit unsorted x values, then one must include
-//     // the following 3 lines. Most likely, this should be handled in a
-//     // separate place, as the possibility of duplicates are not dealt with.
-//     // let mut z: Vec<_> = x.into_iter().zip(y.into_iter()).collect();
-//     // z.sort_unstable_by(|(a, _), (b, _)| a.partial_cmp(b).unwrap());
-//     // let (x, y): (Vec<_>, Vec<_>) = z.into_iter().unzip();
-
-//     // These two necessary conditions could be handled more delicately.
-//     let n = y.len();
-//     assert_eq!(x.len(), n);
-//     assert!(n > 1);
-
-//     let mut nu = diff(&y);
-//     let mut dx = diff(&x);
-//     let k = nu.len();
-//     let mut w: Vec<usize> = vec![1; k];
-//     let mut j = k - 1;
-//     loop {
-//         // let k = nu.len();
-//         // let mut j = k - 1;
-//         while j > 0 && nu[j - 1] / dx[j - 1] <= nu[j] / dx[j] {
-//             j -= 1;
-//         }
-//         if j == 0 {
-//             let mut nu_out = y;
-//             let mut pos: usize = 1;
-//             // for i in 0..nu.len() {
-//             //     let mu = nu[i] / dx[i];
-//             //     for _ in 0..w[i] {
-//             //         nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
-//             //         pos += 1;
-//             //     }
-//             // }
-//             // The maximum value of `pos` is 1 + ∑ⱼwⱼ = 1 + (n - 1) = n, but the
-//             // last offset accessed is n - 1. Hence, all uses of `pos` are safe.
-//             for (nu_i, (dx_i, w_i)) in zip(nu, zip(dx, w)) {
-//                 let mu = nu_i / dx_i;
-//                 for _ in 0..w_i {
-//                     nu_out[pos] = nu_out[pos - 1] + mu * (x[pos] - x[pos - 1]);
-//                     pos += 1;
-//                 }
-//             }
-//             return Gcm { x, mu: nu_out };
-//         }
-//         let w_prime = w[j - 1] + w[j];
-//         let w_j_m1 = w[j - 1] as f64;
-//         let w_j = w[j] as f64;
-//         let nu_prime = (w_j_m1 * nu[j - 1] + w_j * nu[j]) / w_prime as f64;
-//         let dx_prime = (w_j_m1 * dx[j - 1] + w_j * dx[j]) / w_prime as f64;
-//         nu.remove(j);
-//         w.remove(j);
-//         dx.remove(j);
-//         nu[j - 1] = nu_prime;
-//         w[j - 1] = w_prime;
-//         dx[j - 1] = dx_prime;
-//         // Adjacent violators were pooled, thus check the newly formed block
-//         // against the (new) preceding block. However, if we pooled the
-//         // penultimate and last blocks, then no (new) preceding block exists,
-//         // and we must move the index left.
-//         j = j.min(nu.len() - 1);
-//     }
-// }
-
 pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     // These two necessary conditions could be handled more delicately.
     let n = y.len();
@@ -216,19 +139,19 @@ pub fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     let mut f = y;
     let mut dfdx = v;
     let mut f_prev = f[0];
-    let mut pos: usize = 1;
+    let mut i: usize = 1;
     for (nu_j, (xi_j, w_j)) in zip(nu, zip(xi, w)) {
         let dfdx_j = nu_j / xi_j;
-        for (f_pos, (dx_pos, dfdx_pos)) in f[pos..pos + w_j].iter_mut().zip(
-            dx[pos - 1..pos - 1 + w_j]
-                .iter()
-                .zip(dfdx[pos - 1..pos - 1 + w_j].iter_mut()),
+        for (f_i, (dx_i, dfdx_i)) in f[i..i + w_j].iter_mut().zip(
+            dx[i - 1..i - 1 + w_j]
+                .into_iter()
+                .zip(dfdx[i - 1..i - 1 + w_j].iter_mut()),
         ) {
-            *dfdx_pos = dfdx_j;
-            *f_pos = f_prev + dfdx_j * *dx_pos;
-            f_prev = f_pos.clone();
+            *dfdx_i = dfdx_j;
+            *f_i = f_prev + dfdx_j * *dx_i;
+            f_prev = f_i.clone();
         }
-        pos += w_j;
+        i += w_j;
     }
     Gcm { x, f, dfdx }
 }
@@ -553,37 +476,21 @@ mod tests {
         x.windows(2).all(|w| (w[0] - w[1]) <= 10.0 * f64::EPSILON)
     }
 
-    fn verify_kkt_conditions(x: Vec<f64>, y: Vec<f64>) {
+    fn verify_kkt_conditions(x: Vec<f64>, y: Vec<f64>, slackness_tol: f64) {
         let df = diff(&y);
         let dx = diff(&x);
         let dfdx: Vec<f64> = df.iter().zip(dx.iter()).map(|(df, dx)| *df / *dx).collect();
 
         let g = gcm(&x, &y);
-        // This recovers the derivative terms; it would be preferable to use
-        // the implicit function points from within the solver.
-        // Unfortunately, we get all the error of finite difference, which
-        // we could have avoided if we had the solver internals.
-        // Bloated solver vs. slightly less tight verification?
-        // If we ever choose the former, then we can tighten the latter.
-        // let fbar: Vec<f64> = x.iter().map(|x| g.interpolate(*x)).collect();
 
-        // let dfbar = diff(&fbar);
-        // let dfbardx: Vec<f64> = dfbar
-        //     .iter()
-        //     .zip(dx.iter())
-        //     .map(|(df, dx)| *df / *dx)
-        //     .collect();
         let dfbardx: Vec<f64> = g.dfdx().clone();
         // Primal feasibility
-        // assert!(is_primal_feasible(&dfbardx));
-        assert!(is_primal_feasible(&dfbardx) || is_primal_feasible_approx(&dfbardx));
+        assert!(is_primal_feasible(&dfbardx));
+        // assert!(is_primal_feasible(&dfbardx) || is_primal_feasible_approx(&dfbardx));
 
         // Dual feasibility
-        // This is awkward without access to the `w` from the solver.
-        // We must recover the blocks, but, unfortunately, finite precision
-        // means that we cannot rely on exact equality (which, if one inspects
-        // the `gcm_ltor` code, would clearly be the case).
-        let eps = f64::EPSILON;
+        // This is slightly awkward without access to the `w` from the solver.
+        // However, with the derivative from the solver, it can be exact.
         let n = dfbardx.len();
         let mut i: usize = 0;
         while i < n {
@@ -592,7 +499,7 @@ mod tests {
             let mut c = dfbardx[i] * dx[i];
             i += 1;
             assert_eq!((0.0_f64).min(b - c), 0.0);
-            while i < n && (dfbardx[i] - a).abs() < eps {
+            while i < n && dfbardx[i] == a {
                 // N.B. The condition is the `assert!`, but the `assert_eq!` is
                 // equivalent and gives a more informative error message.
                 // assert!(b - c >= 0.0);
@@ -613,12 +520,15 @@ mod tests {
             i += 1;
         }
         i = 0;
-        // This absolute tolerance is too large in most cases, but example_7 requires it.
-        let eps = 3.0 * f64::EPSILON;
+        // An absolute tolerance of f64::EPSILON works for most test cases,
+        // but under the conditions out in the wild, i.e. poorly-scaled data
+        // which yields very large forward differences, we must accommodate
+        // a less stringent absolute tolerance.
+        let eps = slackness_tol;
         while i < n - 1 {
             // This is the condition, but we must accommodate finite precision.
             // assert_eq!(lambda[i] * (dfbardx[i] - dfbardx[i + 1]), 0.0);
-            assert!(lambda[i] * (dfbardx[i] - dfbardx[i + 1]) < eps);
+            assert!((lambda[i] * (dfbardx[i] - dfbardx[i + 1])).abs() < eps);
             i += 1;
         }
     }
@@ -627,19 +537,19 @@ mod tests {
     fn verify_kkt_1() {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 9.0];
         let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
-        verify_kkt_conditions(x, y);
+        verify_kkt_conditions(x, y, 3.0 * f64::EPSILON);
     }
     #[test]
     fn verify_kkt_2() {
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
         let y: Vec<f64> = vec![-2.45, 10.86, 3.91, 8.14, 9.29, 17.19, 13.3, 24.1];
-        verify_kkt_conditions(x, y);
+        verify_kkt_conditions(x, y, f64::EPSILON);
     }
     #[test]
     fn verify_kkt_3() {
         let x: Vec<f64> = vec![0.42, 4.49, 4.71, 10.02, 12.41, 14.88, 16.98, 19.16];
         let y: Vec<f64> = vec![-2.45, 10.86, 3.91, 8.14, 9.29, 17.19, 13.3, 24.1];
-        verify_kkt_conditions(x, y);
+        verify_kkt_conditions(x, y, 50.0 * f64::EPSILON);
     }
     #[test]
     fn verify_kkt_4() {
@@ -649,13 +559,33 @@ mod tests {
         let y: Vec<f64> = vec![
             0.0989, 0.1678, 0.1710, 0.1993, 0.1972, 1.3035, 1.2431, 0.8232, 0.7623, 0.0283,
         ];
-        verify_kkt_conditions(x, y);
+        verify_kkt_conditions(x, y, f64::EPSILON);
     }
     #[test]
     fn verify_kkt_5() {
         let x: Vec<f64> = vec![0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17];
         let y: Vec<f64> = vec![1.0, 10.0, -1.0, -10.0, 10.0, -10.0, 0.0, 0.0];
-        verify_kkt_conditions(x, y);
+        verify_kkt_conditions(x, y, 10000.0 * f64::EPSILON);
+    }
+    #[test]
+    fn verify_kkt_6() {
+        let x: Vec<f64> = vec![
+            -1.0, 10000.0, 50000.0, 100000.0, 100001.0, 120001.0, 121001.0, 200001.0,
+        ];
+        let y: Vec<f64> = vec![
+            0.234, 51.355, 118.267, 198.133, 223.487, 335.363, 1000.357, 1005.121,
+        ];
+        verify_kkt_conditions(x, y, f64::EPSILON);
+    }
+    #[test]
+    fn verify_kkt_7() {
+        let x: Vec<f64> = vec![
+            0.234, 51.355, 118.267, 198.133, 223.487, 335.363, 1000.357, 1005.121,
+        ];
+        let y: Vec<f64> = vec![
+            -1.0, 10000.0, 50000.0, 100000.0, 100001.0, 120001.0, 121001.0, 200001.0,
+        ];
+        verify_kkt_conditions(x, y, f64::EPSILON);
     }
 
     macro_rules! verify_kkt {
@@ -663,7 +593,7 @@ mod tests {
             #[test]
             fn $test() {
                 let (x, y, _, _) = $example();
-                verify_kkt_conditions(x, y);
+                verify_kkt_conditions(x, y, f64::EPSILON);
             }
         }
     }
