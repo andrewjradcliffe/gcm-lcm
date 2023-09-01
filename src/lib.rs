@@ -472,9 +472,6 @@ mod tests {
     fn is_primal_feasible(x: &[f64]) -> bool {
         x.windows(2).all(|w| w[0] <= w[1])
     }
-    fn is_primal_feasible_approx(x: &[f64]) -> bool {
-        x.windows(2).all(|w| (w[0] - w[1]) <= 10.0 * f64::EPSILON)
-    }
 
     fn verify_kkt_conditions(x: Vec<f64>, y: Vec<f64>, slackness_tol: f64) {
         let df = diff(&y);
@@ -486,7 +483,6 @@ mod tests {
         let dfbardx: Vec<f64> = g.dfdx().clone();
         // Primal feasibility
         assert!(is_primal_feasible(&dfbardx));
-        // assert!(is_primal_feasible(&dfbardx) || is_primal_feasible_approx(&dfbardx));
 
         // Dual feasibility
         // This is slightly awkward without access to the `w` from the solver.
