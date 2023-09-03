@@ -8,7 +8,7 @@ pub struct Gcm {
 }
 impl Gcm {
     /// Return the value of the greatest convex minorant at `x`. If `x` is outside
-    /// the domain of the inputs to `gcm`, then this is extrapolation.
+    /// the domain of the inputs, then this is extrapolation.
     pub fn interpolate(&self, x: f64) -> f64 {
         match self.x.binary_search_by(|x_j| x_j.total_cmp(&x)) {
             Ok(j) => self.f[j],
@@ -33,7 +33,7 @@ impl Gcm {
     }
 
     /// Return the value of the derivative of the greatest convex minorant at `x`.
-    /// If `x` is outside the domain defined by the inputs to `gcm`, then this
+    /// If `x` is outside the domain defined by the inputs, then this
     /// is clamped to the appropriate end of the codomain of the derivative.
     pub fn derivative(&self, x: f64) -> f64 {
         let k = self.x.len();
@@ -216,13 +216,13 @@ pub struct Lcm {
 }
 impl Lcm {
     /// Return the value of the greatest convex minorant at `x`. If `x` is outside
-    /// the domain of the inputs to `lcm`, then this is extrapolation.
+    /// the domain of the inputs, then this is extrapolation.
     pub fn interpolate(&self, x: f64) -> f64 {
         self.g.interpolate(x)
     }
 
     /// Return the value of the derivative of the greatest convex minorant at `x`.
-    /// If `x` is outside the domain defined by the inputs to `gcm`, then this
+    /// If `x` is outside the domain defined by the inputs, then this
     /// is clamped to the appropriate end of the codomain of the derivative.
     pub fn derivative(&self, x: f64) -> f64 {
         self.g.derivative(x)
