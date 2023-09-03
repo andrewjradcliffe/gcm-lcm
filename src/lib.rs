@@ -53,9 +53,13 @@ impl Gcm {
                     // At the right boundary, hence, clamp.
                     self.dfdx[k - 2]
                 } else {
+                    // The derivative between blocks is the derivative of the left block,
+                    // not a linear interpolation between the two derivatives.
+                    // While it is arguably correct for the implicit function
+                    // (i.e. the derivative) to be interpolated, it is not consistent
+                    // with the definition of f(i) = f(i-1) + Df(i-1) * (x(i) - x(i-1))
+                    // which imposes a constant derivative between i and i-1.
                     self.dfdx[j - 1]
-                        + (self.dfdx[j] - self.dfdx[j - 1]) / (self.x[j] - self.x[j - 1])
-                            * (x - self.x[j - 1])
                 }
             }
         }
@@ -471,6 +475,43 @@ mod tests {
         assert_eq!(l.derivative(5.0), l.derivative(4.9758));
         assert_eq!(l.derivative(1.0), l.derivative(1.8155));
         assert_eq!(g.derivative(4.96), g.derivative(4.9758));
+    }
+    #[test]
+    fn derivative_is_self_consistent() {
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 9.0];
+        let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
+        let g = gcm(&x, &y);
+        // Is it consistent?
+        // x=3.0 is one of the discontinuities in the derivative. Thus, this tests
+        // for properties we expect across adjacent blocks.
+        let x_tilde: f64 = 2.9;
+        let eps: f64 = 0.5;
+        let x_left: f64 = 3.0;
+        let dfdx = (g.interpolate(x_tilde + eps) - g.interpolate(x_tilde)) / eps;
+        // The derivative should not be equal irrespective of whether we interpolate.
+        assert_ne!(dfdx, g.derivative(x_tilde));
+        // This should be the case irrespective of whether we interpolate or not
+        // since these are in different blocks.
+        assert_ne!(g.derivative(x_tilde + eps), g.derivative(x_tilde));
+        // This is the self-consistent definition; it is merely a check.
+        let fx = g.interpolate(x_left) + g.derivative(x_left) * (x_tilde + eps - x_left);
+        assert_eq!(fx, g.interpolate(x_tilde + eps));
+
+        // This remains within a single block, hence, the derivative should be equal.
+        // If the derivative were interpolated, this would fail.
+        let x_tilde: f64 = 2.7;
+        let eps: f64 = 0.2;
+        let x_left: f64 = 2.0;
+        let dfdx = (g.interpolate(x_tilde + eps) - g.interpolate(x_tilde)) / eps;
+        // Within a block, these should be equal. If we interpolated, this would fail.
+        assert_eq!(g.derivative(x_tilde + eps), g.derivative(x_tilde));
+        assert_eq!(g.derivative(x_tilde), g.derivative(x_left));
+        // The forward difference, computed on two points within the same block,
+        // should be equal to the derivative.
+        assert!((dfdx - g.derivative(x_tilde)).abs() <= 2.0 * f64::EPSILON);
+        // Note the difference: the derivative is wrt an interior point.
+        let fx = g.interpolate(x_left) + g.derivative(x_tilde) * (x_tilde + eps - x_left);
+        assert_eq!(fx, g.interpolate(x_tilde + eps));
     }
 
     fn is_primal_feasible(x: &[f64]) -> bool {
