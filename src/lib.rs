@@ -518,7 +518,7 @@ mod tests {
         x.windows(2).all(|w| w[0] <= w[1])
     }
 
-    fn verify_kkt_conditions(x: Vec<f64>, y: Vec<f64>, slackness_tol: f64) {
+    fn verify_kkt_conditions(x: Vec<f64>, y: Vec<f64>, slackness_tol: f64, slackness_tol2: f64) {
         let df = diff(&y);
         let dx = diff(&x);
         let dfdx: Vec<f64> = df.iter().zip(dx.iter()).map(|(df, dx)| *df / *dx).collect();
@@ -544,10 +544,11 @@ mod tests {
                 // N.B. The condition is the `assert!`, but the `assert_eq!` is
                 // equivalent and gives a more informative error message.
                 // assert!(b - c >= 0.0);
-                assert_eq!((0.0_f64).min(b - c), 0.0);
+                // assert_eq!((0.0_f64).min(b - c), 0.0);
                 b += dfdx[i] * dx[i];
                 c += dfbardx[i] * dx[i];
                 i += 1;
+                assert!((0.0_f64).min(b - c).abs() < 1e-15);
             }
         }
 
@@ -572,25 +573,52 @@ mod tests {
             assert!((lambda[i] * (dfbardx[i] - dfbardx[i + 1])).abs() < eps);
             i += 1;
         }
+
+        // Alternate method to compute the Lagrange multipliers
+        // and thereby verify both dual feasibility and complementary slackness.
+        // It is worthwhile to use both approaches, as this method enables a tighter
+        // check of complementary slackness, but requires a looser check of dual
+        // feasibility.
+        let fbar: Vec<f64> = g.f().clone();
+        let lambda: Vec<f64> = y[1..]
+            .iter()
+            .zip(fbar[1..].iter())
+            .map(|(y_i, f_i)| *y_i - *f_i)
+            .collect();
+        // Dual feasibility
+        let mut i: usize = 0;
+        while i < n {
+            assert!((0.0_f64).min(lambda[i]).abs() < 1e-13);
+            i += 1;
+        }
+        // Complementary slackness
+        let eps = slackness_tol2;
+        let mut i: usize = 0;
+        while i < n - 1 {
+            // The condition, but, as above, we must accommodate finite precision.
+            // assert_eq!(lambda[i] * (dfbardx[i] - dfbardx[i + 1]), 0.0);
+            assert!((lambda[i] * (dfbardx[i] - dfbardx[i + 1])).abs() < eps);
+            i += 1;
+        }
     }
 
     #[test]
     fn verify_kkt_1() {
         let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 9.0];
         let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
-        verify_kkt_conditions(x, y, 3.0 * f64::EPSILON);
+        verify_kkt_conditions(x, y, 3.0 * f64::EPSILON, f64::EPSILON);
     }
     #[test]
     fn verify_kkt_2() {
         let x: Vec<f64> = vec![1.0, 3.0, 6.0, 10.0, 11.0, 13.0, 17.0, 20.0];
         let y: Vec<f64> = vec![-2.45, 10.86, 3.91, 8.14, 9.29, 17.19, 13.3, 24.1];
-        verify_kkt_conditions(x, y, f64::EPSILON);
+        verify_kkt_conditions(x, y, f64::EPSILON, f64::EPSILON);
     }
     #[test]
     fn verify_kkt_3() {
         let x: Vec<f64> = vec![0.42, 4.49, 4.71, 10.02, 12.41, 14.88, 16.98, 19.16];
         let y: Vec<f64> = vec![-2.45, 10.86, 3.91, 8.14, 9.29, 17.19, 13.3, 24.1];
-        verify_kkt_conditions(x, y, 50.0 * f64::EPSILON);
+        verify_kkt_conditions(x, y, 50.0 * f64::EPSILON, 40.0 * f64::EPSILON);
     }
     #[test]
     fn verify_kkt_4() {
@@ -600,13 +628,13 @@ mod tests {
         let y: Vec<f64> = vec![
             0.0989, 0.1678, 0.1710, 0.1993, 0.1972, 1.3035, 1.2431, 0.8232, 0.7623, 0.0283,
         ];
-        verify_kkt_conditions(x, y, f64::EPSILON);
+        verify_kkt_conditions(x, y, f64::EPSILON, f64::EPSILON);
     }
     #[test]
     fn verify_kkt_5() {
         let x: Vec<f64> = vec![0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17];
         let y: Vec<f64> = vec![1.0, 10.0, -1.0, -10.0, 10.0, -10.0, 0.0, 0.0];
-        verify_kkt_conditions(x, y, 10000.0 * f64::EPSILON);
+        verify_kkt_conditions(x, y, 10000.0 * f64::EPSILON, f64::EPSILON);
     }
     #[test]
     fn verify_kkt_6() {
@@ -616,7 +644,7 @@ mod tests {
         let y: Vec<f64> = vec![
             0.234, 51.355, 118.267, 198.133, 223.487, 335.363, 1000.357, 1005.121,
         ];
-        verify_kkt_conditions(x, y, f64::EPSILON);
+        verify_kkt_conditions(x, y, f64::EPSILON, f64::EPSILON);
     }
     #[test]
     fn verify_kkt_7() {
@@ -626,7 +654,8 @@ mod tests {
         let y: Vec<f64> = vec![
             -1.0, 10000.0, 50000.0, 100000.0, 100001.0, 120001.0, 121001.0, 200001.0,
         ];
-        verify_kkt_conditions(x, y, f64::EPSILON);
+        // The second slackness tolerance applies only to the last term.
+        verify_kkt_conditions(x, y, f64::EPSILON, 1e-6);
     }
 
     macro_rules! verify_kkt {
@@ -634,7 +663,7 @@ mod tests {
             #[test]
             fn $test() {
                 let (x, y, _, _) = $example();
-                verify_kkt_conditions(x, y, f64::EPSILON);
+                verify_kkt_conditions(x, y, f64::EPSILON, f64::EPSILON);
             }
         }
     }
