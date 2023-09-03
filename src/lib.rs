@@ -92,8 +92,56 @@ impl Gcm {
 /// In addition to the three conditions above, `n` must be at least 2,
 /// and `x.len() == y.len()` must hold. Failure to satisfy these two
 /// conditions will result in a panic.
+///
+/// If uniqueness and order of the *x*-values cannot be guaranteed,
+/// then `gcm_from_unordered` should be considered. On the other hand,
+/// if the guarantees can be upheld, `gcm` should be preferred as it
+/// eliminates a few allocations and guarantees *O*(*n*) time complexity.
 pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
     gcm_ltor(x.to_vec(), y.to_vec())
+}
+
+// This assumes that z is ordered by the first element of the pairs.
+fn dedup_by_min(z: Vec<(f64, f64)>) -> (Vec<f64>, Vec<f64>) {
+    let n = z.len();
+    let mut x: Vec<f64> = Vec::with_capacity(n);
+    let mut y: Vec<f64> = Vec::with_capacity(n);
+    let mut i: usize = 0;
+    while i < n {
+        let a = z[i].0;
+        let mut b = z[i].1;
+        i += 1;
+        while i < n && z[i].0 == a {
+            b = b.min(z[i].1);
+            i += 1;
+        }
+        x.push(a);
+        y.push(b);
+    }
+    (x, y)
+}
+
+/// Construct the greatest convex minorant of the sequence of points,
+/// *(xᵢ, yᵢ), i = 0,...,n-1*, assuming that
+/// (1) *-∞ < xᵢ < ∞ ∀i*, and
+/// (2) *xᵢ* is not NaN *∀i*.
+/// In contrast to `gcm`, it is not assumed that `x` is ordered such that *xᵢ < xᵢ₊₁*,
+/// nor that the elements of `x` are unique. Points in the ordered sequence
+/// for which *xᵢ = xᵢ₊₁* will be de-duplicated by pairing the unique *x*-value
+/// with the minimum of the respective *y*-values.
+/// In addition to the conditions above, `x.len() == y.len()` must hold
+/// and the number of unique points (after applying the de-duplication above)
+/// must be at least 2.
+///
+/// In choosing between `gcm` and `gcm_unordered`, it should be noted that
+/// the latter will incur a few more allocations, and, due to the need to sort
+/// the points, has *O*(*n* * log*n*) worst-case time complexity.
+pub fn gcm_unordered(x: &[f64], y: &[f64]) -> Gcm {
+    assert_eq!(x.len(), y.len());
+    let mut z: Vec<_> = x.iter().cloned().zip(y.iter().cloned()).collect();
+    z.sort_unstable_by(|(a, _), (b, _)| a.total_cmp(b));
+    let (x, y) = dedup_by_min(z);
+    gcm_ltor(x, y)
 }
 
 fn diff(x: &[f64]) -> Vec<f64> {
@@ -207,9 +255,40 @@ impl Lcm {
 /// In addition to the three conditions above, `n` must be at least 2,
 /// and `x.len() == y.len()` must hold. Failure to satisfy these two
 /// conditions will result in a panic.
+///
+/// If uniqueness and order of the *x*-values cannot be guaranteed,
+/// then `lcm_from_unordered` should be considered. On the other hand,
+/// if the guarantees can be upheld, `lcm` should be preferred as it
+/// eliminates a few allocations and guarantees *O*(*n*) time complexity.
 pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
     let x = x.to_vec();
     let y: Vec<f64> = y.iter().map(|y_i| -*y_i).collect();
+    let mut g = gcm_ltor(x, y);
+    g.f.iter_mut().for_each(|f_i| *f_i = -*f_i);
+    g.dfdx.iter_mut().for_each(|dfdx_i| *dfdx_i = -*dfdx_i);
+    Lcm { g }
+}
+
+/// Construct the least concave minorant of the sequence of points,
+/// *(xᵢ, yᵢ), i = 0,...,n-1*, assuming that
+/// (1) *-∞ < xᵢ < ∞ ∀i*, and
+/// (2) *xᵢ* is not NaN *∀i*.
+/// In contrast to `lcm`, it is not assumed that `x` is ordered such that *xᵢ < xᵢ₊₁*,
+/// nor that the elements of `x` are unique. Points in the ordered sequence
+/// for which *xᵢ = xᵢ₊₁* will be de-duplicated by pairing the unique *x*-value
+/// with the maximum of the respective *y*-values.
+/// In addition to the conditions above, `x.len() == y.len()` must hold
+/// and the number of unique points (after applying the de-duplication above)
+/// must be at least 2.
+///
+/// In choosing between `lcm` and `lcm_unordered`, it should be noted that
+/// the latter will incur a few more allocations, and, due to the need to sort
+/// the points, has *O*(*n* * log*n*) worst-case time complexity.
+pub fn lcm_unordered(x: &[f64], y: &[f64]) -> Lcm {
+    assert_eq!(x.len(), y.len());
+    let mut z: Vec<_> = x.iter().cloned().zip(y.iter().map(|y_i| -*y_i)).collect();
+    z.sort_unstable_by(|(a, _), (b, _)| a.total_cmp(b));
+    let (x, y) = dedup_by_min(z);
     let mut g = gcm_ltor(x, y);
     g.f.iter_mut().for_each(|f_i| *f_i = -*f_i);
     g.dfdx.iter_mut().for_each(|dfdx_i| *dfdx_i = -*dfdx_i);
@@ -512,6 +591,104 @@ mod tests {
         // Note the difference: the derivative is wrt an interior point.
         let fx = g.interpolate(x_left) + g.derivative(x_tilde) * (x_tilde + eps - x_left);
         assert_eq!(fx, g.interpolate(x_tilde + eps));
+    }
+
+    #[test]
+    fn dedup_by_min_works() {
+        let z: Vec<(f64, f64)> = vec![(1.0, 2.0), (1.0, 1.0), (2.0, 3.0), (2.0, 2.5)];
+        assert_eq!(dedup_by_min(z), (vec![1.0, 2.0], vec![1.0, 2.5]));
+
+        let z: Vec<(f64, f64)> = vec![(1.0, 2.0), (1.0, 2.0), (2.0, 3.0), (2.0, 3.0)];
+        assert_eq!(dedup_by_min(z), (vec![1.0, 2.0], vec![2.0, 3.0]));
+
+        let z: Vec<(f64, f64)> = vec![(1.0, 2.0), (1.0, 1.0), (2.0, 3.0), (2.0, 2.5), (3.0, -5.0)];
+        assert_eq!(dedup_by_min(z), (vec![1.0, 2.0, 3.0], vec![1.0, 2.5, -5.0]));
+
+        let z: Vec<(f64, f64)> = vec![
+            (1.0, 5.0),
+            (1.0, 1.0),
+            (1.0, 2.0),
+            (1.0, 1.0),
+            (2.0, 3.0),
+            (2.0, 2.5),
+            (3.0, -5.0),
+        ];
+        assert_eq!(dedup_by_min(z), (vec![1.0, 2.0, 3.0], vec![1.0, 2.5, -5.0]));
+
+        let z: Vec<(f64, f64)> = vec![
+            (1.0, 5.0),
+            (1.0, 1.0),
+            (1.0, 2.0),
+            (1.0, 1.0),
+            (2.0, 3.0),
+            (2.0, 2.5),
+            (3.0, -5.0),
+            (3.0, 4.0),
+            (3.0, -100.0),
+            (3.0, -50.0),
+        ];
+        assert_eq!(
+            dedup_by_min(z),
+            (vec![1.0, 2.0, 3.0], vec![1.0, 2.5, -100.0])
+        );
+    }
+
+    #[test]
+    fn gcm_lcm_unordered_works() {
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 9.0];
+        let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
+        let f_gcm: Vec<f64> = vec![1.0, 1.5, 2.0, 13.0 / 5.0, 22.0 / 5.0, 5.0, 8.0];
+        // The last two values are 37.0 / 5.0, 8.0, but finite precision forces this.
+        let f_lcm: Vec<f64> = vec![
+            1.0,
+            3.0,
+            4.0,
+            5.0,
+            34.0 / 5.0,
+            7.3999999999999995,
+            7.999999999999999,
+        ];
+
+        // First, do we replicate `gcm` and `lcm` as expected?
+        let g = gcm_unordered(&x, &y);
+        assert_eq!(g.f(), &f_gcm);
+        let l = lcm_unordered(&x, &y);
+        assert_eq!(l.f(), &f_lcm);
+
+        let x: Vec<f64> = x.into_iter().rev().collect();
+        let y: Vec<f64> = y.into_iter().rev().collect();
+
+        // Second: simple reverse ordering
+        let g = gcm_unordered(&x, &y);
+        assert_eq!(g.f(), &f_gcm);
+        let l = lcm_unordered(&x, &y);
+        assert_eq!(l.f(), &f_lcm);
+
+        // Now, duplicates
+        let x: Vec<f64> = vec![4.0, 8.0, 1.0, 2.0, 3.0, 3.0, 3.0, 4.0, 7.0, 8.0, 9.0];
+        let y: Vec<f64> = vec![5.0, 5.0, 1.0, 3.0, 2.5, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
+        let g = gcm_unordered(&x, &y);
+        assert_eq!(g.f(), &f_gcm);
+        let l = lcm_unordered(&x, &y);
+        assert_eq!(l.f(), &f_lcm);
+
+        let x: Vec<f64> = vec![9.0, 1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 9.0, 3.0, 3.0, 4.0];
+        let y: Vec<f64> = vec![10.0, 1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0, 2.5, 3.0, 6.0];
+        let g = gcm_unordered(&x, &y);
+        assert_eq!(g.f(), &f_gcm);
+        let l = lcm_unordered(&x, &y);
+        assert_eq!(
+            l.f(),
+            &vec![
+                1.0,
+                3.0,
+                4.5,
+                6.0,
+                8.4,
+                9.200000000000001,
+                10.000000000000002
+            ]
+        );
     }
 
     fn is_primal_feasible(x: &[f64]) -> bool {
