@@ -94,8 +94,8 @@ impl Gcm {
 /// conditions will result in a panic.
 ///
 /// If uniqueness and order of the *x*-values cannot be guaranteed,
-/// then `gcm_unordered` should be considered. On the other hand,
-/// if the guarantees can be upheld, `gcm` should be preferred as it
+/// then `gcm_unordered` should be used. On the other hand,
+/// if the guarantees can be upheld, `gcm` should be used as it
 /// eliminates a few allocations and guarantees *O*(*n*) time complexity.
 pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
     gcm_ltor(x.to_vec(), y.to_vec())
@@ -257,8 +257,8 @@ impl Lcm {
 /// conditions will result in a panic.
 ///
 /// If uniqueness and order of the *x*-values cannot be guaranteed,
-/// then `lcm_unordered` should be considered. On the other hand,
-/// if the guarantees can be upheld, `lcm` should be preferred as it
+/// then `lcm_unordered` should be used. On the other hand,
+/// if the guarantees can be upheld, `lcm` should be used as it
 /// eliminates a few allocations and guarantees *O*(*n*) time complexity.
 pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
     let x = x.to_vec();
