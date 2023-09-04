@@ -5,7 +5,6 @@ pub struct Gcm {
     x: Vec<f64>,
     f: Vec<f64>,
     dfdx: Vec<f64>,
-    vertices: Vec<usize>,
 }
 impl Gcm {
     /// Return the value of the greatest convex minorant at `x`. If `x` is outside
@@ -79,10 +78,6 @@ impl Gcm {
     /// Return the codomain of the derivative.
     pub fn dfdx<'a>(&'a self) -> &'a Vec<f64> {
         &self.dfdx
-    }
-
-    pub fn vertices<'a>(&'a self) -> &'a Vec<usize> {
-        &self.vertices
     }
 }
 
@@ -197,8 +192,6 @@ fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     }
     let mut f = y;
     let mut dfdx = v;
-    let mut vertices: Vec<usize> = vec![0; 1];
-    let mut vert: usize = 0;
     let mut f_prev = f[0];
     let mut i: usize = 1;
     for (nu_j, (xi_j, w_j)) in zip(nu, zip(xi, w)) {
@@ -212,16 +205,9 @@ fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
             *f_i = f_prev + dfdx_j * *dx_i;
             f_prev = f_i.clone();
         }
-        vert += w_j;
-        vertices.push(vert);
         i += w_j;
     }
-    Gcm {
-        x,
-        f,
-        dfdx,
-        vertices,
-    }
+    Gcm { x, f, dfdx }
 }
 
 #[derive(Debug, Clone)]
@@ -887,12 +873,4 @@ mod tests {
     verify_kkt! { kkt_example_8 example_8 }
     verify_kkt! { kkt_example_9 example_9 }
     verify_kkt! { kkt_example_10 example_10 }
-
-    #[test]
-    fn vertices_work() {
-        let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 9.0];
-        let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
-        let g = gcm(&x, &y);
-        assert_eq!(g.vertices(), &vec![0, 2, 5, 6]);
-    }
 }
