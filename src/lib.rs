@@ -102,6 +102,9 @@ pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
 }
 
 // This assumes that z is ordered by the first element of the pairs.
+// Note that though we use `total_cmp` elsewhere, the use of equality
+// here is correct insofar as we do not have any `NaN`s -- in which
+// case, the algorithm is undefined.
 fn dedup_by_min(z: Vec<(f64, f64)>) -> (Vec<f64>, Vec<f64>) {
     let n = z.len();
     let mut x: Vec<f64> = Vec::with_capacity(n);
