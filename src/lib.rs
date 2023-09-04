@@ -507,7 +507,20 @@ mod tests {
         let lhs = g.f();
         assert_eq!(lhs[0], 1.0);
         assert!(lhs[1].is_nan());
-        assert!(lhs[2].is_nan())
+        assert!(lhs[2].is_nan());
+
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![inf; 3];
+        let g = gcm(&x, &y);
+        assert_eq!(g.f()[0], inf);
+        assert!(g.f()[1..].iter().all(|f_i| f_i.is_nan()));
+        assert!(g.dfdx().iter().all(|f_i| f_i.is_nan()));
+
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![f64::MAX, f64::MAX, inf];
+        let g = gcm(&x, &y);
+        assert_eq!(g.f(), &y);
+        assert_eq!(g.dfdx(), &vec![0.0, inf]);
     }
 
     #[test]
@@ -528,6 +541,12 @@ mod tests {
         assert_eq!(g.interpolate(1.0), 1.0);
         assert!(g.interpolate(2.0).is_nan());
         assert!(g.interpolate(3.0).is_nan());
+
+        let x: Vec<f64> = vec![1.0, 2.0, 3.0];
+        let y: Vec<f64> = vec![f64::NAN; 3];
+        let g = gcm(&x, &y);
+        assert!(g.f().iter().all(|f_i| f_i.is_nan()));
+        assert!(g.dfdx().iter().all(|f_i| f_i.is_nan()));
     }
 
     #[test]
