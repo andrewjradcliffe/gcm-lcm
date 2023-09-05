@@ -222,20 +222,20 @@ fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     Gcm { x, f, dfdx }
 }
 
-/// The result of least concave minorant construction, which occurs
+/// The result of least concave majorant construction, which occurs
 /// via `lcm` or `lcm_unordered`.
 #[derive(Debug, Clone)]
 pub struct Lcm {
     g: Gcm,
 }
 impl Lcm {
-    /// Return the value of the greatest convex minorant at `x`. If `x` is outside
+    /// Return the value of the least concave majorant at `x`. If `x` is outside
     /// the domain of the inputs, then this is extrapolation.
     pub fn interpolate(&self, x: f64) -> f64 {
         self.g.interpolate(x)
     }
 
-    /// Return the value of the derivative of the greatest convex minorant at `x`.
+    /// Return the value of the derivative of the least concave majorant at `x`.
     /// If `x` is outside the domain defined by the inputs, then this
     /// is clamped to the appropriate end of the codomain of the derivative.
     pub fn derivative(&self, x: f64) -> f64 {
@@ -292,7 +292,7 @@ pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
     Lcm { g }
 }
 
-/// Construct the least concave minorant of the sequence of points,
+/// Construct the least concave majorant of the sequence of points,
 /// *(xᵢ, yᵢ), i = 0,...,n-1*, assuming that
 /// (1) *-∞ < xᵢ < ∞ ∀i*, and
 /// (2) *xᵢ* is not NaN *∀i*.
