@@ -1,5 +1,7 @@
 use std::iter::zip;
 
+/// The result of greatest convex minorant construction, which occurs
+/// via `gcm` or `gcm_unordered`.
 #[derive(Debug, Clone)]
 pub struct Gcm {
     x: Vec<f64>,
@@ -97,6 +99,15 @@ impl Gcm {
 /// then `gcm_unordered` should be used. On the other hand,
 /// if the guarantees can be upheld, `gcm` should be used as it
 /// eliminates a few allocations and guarantees *O*(*n*) time complexity.
+///
+/// # Examples
+/// ```
+/// use gcm_lcm::gcm;
+/// let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 7.5];
+/// let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
+/// let g = gcm(&x, &y);
+/// assert_eq!(g.f(), &vec![1.0, 1.5, 2.0, 2.6, 4.4, 5.0, 7.5]);
+/// ```
 pub fn gcm(x: &[f64], y: &[f64]) -> Gcm {
     gcm_ltor(x.to_vec(), y.to_vec())
 }
@@ -213,6 +224,8 @@ fn gcm_ltor(x: Vec<f64>, y: Vec<f64>) -> Gcm {
     Gcm { x, f, dfdx }
 }
 
+/// The result of least concave minorant construction, which occurs
+/// via `lcm` or `lcm_unordered`.
 #[derive(Debug, Clone)]
 pub struct Lcm {
     g: Gcm,
@@ -263,6 +276,15 @@ impl Lcm {
 /// then `lcm_unordered` should be used. On the other hand,
 /// if the guarantees can be upheld, `lcm` should be used as it
 /// eliminates a few allocations and guarantees *O*(*n*) time complexity.
+///
+/// # Examples
+/// ```
+/// use lcm_lcm::lcm;
+/// let x: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 7.0, 8.0, 7.5];
+/// let y: Vec<f64> = vec![1.0, 3.0, 2.0, 5.0, 6.0, 5.0, 8.0];
+/// let g = lcm(&x, &y);
+/// assert_eq!(g.f(), &vec![1.0, 3.0, 4.0, 5.0, 6.5, 7.0, 7.5]);
+/// ```
 pub fn lcm(x: &[f64], y: &[f64]) -> Lcm {
     let x = x.to_vec();
     let y: Vec<f64> = y.iter().map(|y_i| -*y_i).collect();
