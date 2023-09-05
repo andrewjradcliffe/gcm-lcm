@@ -2,7 +2,11 @@
 name = "gcm-lcm"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Andrew Radcliffe <andrewjradcliffe@gmail.com>"]
+description = "Greatest convex minorant, least concave majorant"
+repository = "https://github.com/andrewjradcliffe/gcm-lcm/"
+license = "MIT OR Apache-2.0"
+keywords = ["convex", "minorant", "concave", "majorant", "statistics"]
+categories = ["mathematics", "algorithms", "science"]
 
 [dependencies]
