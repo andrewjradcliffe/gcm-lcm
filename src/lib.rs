@@ -1,3 +1,14 @@
+//! # gcm-lcm
+//!
+//! Construction of either the greatest convex minorant or least concave majorant.
+//! Guaranteed *O*(*n*) time complexity for ordered input, or *O*(*n* * log*n*)
+//! worst-case time complexity for unordered inputs.
+//! The resultant function approximation can then be used to compute
+//! points via interpolation, or, alternatively, if the first derivative is
+//! of the function is of interest, the `derivative` method provides
+//! self-consistent values without which avoid error incurred by finite
+//! difference.
+
 use std::iter::zip;
 
 /// The result of greatest convex minorant construction, which occurs
